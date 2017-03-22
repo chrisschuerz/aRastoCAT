@@ -8,23 +8,26 @@
 #' @return
 #' @export
 
-aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index) {
+aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
+                           lat_lbl = "lat", lon_lbl = "lon", time_lbl = "time") {
 
   # Load NCDF file ------------------------------------------------------
   ncin <- nc_open(filename = ncdf_pth)
 
   # Read variable and date from ncdf
-  tmp_array <- ncvar_get(ncin,"pr")
-  time <- ncvar_get(ncin,"time")
+  tmp_array <- ncvar_get(ncin,var_lbl)
+  time <- ncvar_get(ncin, time_lbl)
 
   # Get initial time step
-  t_0 <- ncatt_get(ncin,"time","units")$value %>%
-    gsub("days since ", "", .) %>%
+  t_0 <- ncatt_get(ncin,time_lbl,"units")$value %>%
+    gsub("days since |seconds since ", "", .) %>%
     as.Date()
 
+  nc_close(ncin)
+
   # Load lat/lon as raster and create polygon index layer from it -------
-  lat <- raster(ncdf_files[1], varname="lat")
-  lon <- raster(ncdf_files[1], varname="lon")
+  lat <- raster(ncdf_pth, varname = lat_lbl)
+  lon <- raster(ncdf_pth, varname = lon_lbl)
   rst_dim <- dim(lon) #x = horiz = lon / y = vert = lat
   rst_len <- length(lon)
 
@@ -34,9 +37,11 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index) {
   lonlat <- cbind(plon[,3], plat[,3])
 
   # Specify the lonlat as spatial points with projection as long/lat
-  lonlat <- SpatialPointsDataFrame(coords = lonlat, proj4string = CRS(ncdf_crs), data = data.frame(value = 1:length(lon)))
-  lonlat <- SpatialPoints(coords = lonlat, proj4string = CRS(ncdf_crs))
-  lonlat_proj <- spTransform(lonlat, CRSobj = crs(basin_shp))
+  lonlat_proj <- SpatialPointsDataFrame(coords = lonlat,
+                                        proj4string = CRS(ncdf_crs),
+                                        data = data.frame(value = 1:length(lon))) %>%
+  SpatialPoints(coords = ., proj4string = CRS(ncdf_crs)) %>%
+  spTransform(., CRSobj = crs(basin_shp))
 
   # Derive lat/lon cell size of projected raster
   cell_size <- c(lonlat_proj@coords[1:rst_dim[2],1] %>% diff() %>% mean(),
@@ -45,11 +50,6 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index) {
                    mean()
   )
 
-  # Create raster with cell indices as values
-  idx_rst <- matrix(data = 1:rst_len, nrow = rst_dim[2]) %>%
-    t() %>%
-    apply(., 2, rev) %>%
-    raster()
 
   # Assign extent of point layer but adding cell extent
   ext <- extent(lonlat_proj)
@@ -57,13 +57,24 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index) {
   ext@xmax <- ext@xmax + cell_size[2]/2
   ext@ymin <- ext@ymin - cell_size[1]/2
   ext@ymax <- ext@ymax + cell_size[1]/2 # be careful here maybe other way round!!!
-  extent(idx_rst) <- ext
 
-  # assign crs of catchment boundary
-  crs(idx_rst) <- crs(basin_shp)
+  # Create raster with cell indices as values and convert to spatial polygon
+  assign_crs <- function(sp_obj, crs_new) {
+    crs(sp_obj) <- crs_new
+    return(sp_obj)
+  }
+  assign_ext <- function(sp_obj, ext_new) {
+    extent(sp_obj) <- ext_new
+    return(sp_obj)
+  }
 
-  # Convert index raster to spatial polygon
-  idx_poly <- as(idx_rst, "SpatialPolygonsDataFrame")
+  idx_poly <- matrix(data = 1:rst_len, nrow = rst_dim[2]) %>%
+    t() %>%
+    apply(., 2, rev) %>%
+    raster() %>%
+    assign_crs(., crs(basin_shp)) %>%
+    assign_ext(., ext) %>%
+    as(., "SpatialPolygonsDataFrame")
 
   # Intersect index polygon with subbasin boundaries
   int_poly <- raster::intersect(idx_poly, basin_shp)
@@ -94,5 +105,10 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index) {
     set_colnames(shp_index%_%1:ncol(.)) %>%
     add_column(date = t_0 + time, .before = 1)
 
+  ws <- ls()
+  ws <- ws[ws != "idx_area"]
+  rm(list = ws)
+  removeTmpFiles(h=0)
+  gc()
   return(idx_area)
 }
