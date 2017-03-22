@@ -1,6 +1,5 @@
 library(ncdf4)
 library(raster)
-library(maps)
 library(magrittr)
 library(rgdal)
 library(dplyr)
@@ -12,7 +11,7 @@ library(pasta)
 # ncdf_files <- list.files("G:/UnLoadC3", full.names = TRUE)
 # FOr testing one file on C:/
 ncdf_files <- "C:/pr_bc_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_day_AT_EZG_1971-2000.nc"
-ncin <- nc_open(filename = ncdf_files[1])
+ncin <- nc_open(filename = ncdf_files[100])
 tmp_array <- ncvar_get(ncin,"pr")
 time <- ncvar_get(ncin,"time")
 t_0 <- ncatt_get(ncin,"time","units")$value %>%

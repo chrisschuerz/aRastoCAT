@@ -5,6 +5,14 @@
 #' @param ncdf_crs
 #' @param shp_index
 #'
+#' @importFrom pasta %_%
+#' @importFrom dplyr mutate mutate_at select matches starts_with left_join vars funs group_by summarize_all
+#' @importFrom tibble as_tibble add_column
+#' @importFrom magrittr %>% set_colnames subtract
+#' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
+#' @importFrom raster raster rasterToPoints extent crs intersect removeTmpFiles
+#' @importFrom sp SpatialPoints SpatialPointsDataFrame spTransform SpatialPolygonsDataFrame
+#'
 #' @return
 #' @export
 
@@ -77,13 +85,13 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
     as(., "SpatialPolygonsDataFrame")
 
   # Intersect index polygon with subbasin boundaries
-  int_poly <- raster::intersect(idx_poly, basin_shp)
+  int_poly <- intersect(idx_poly, basin_shp)
 
   # Extract data.frame with indices, subbasin number and pixel areas
   idx_area <- data.frame(area = sapply(int_poly@polygons, FUN=function(x) {slot(x, 'area')})) %>%
     cbind(int_poly@data) %>%
     mutate(area_fract = area/(cell_size[1]*cell_size[2])) %>%
-    dplyr::select(matches(shp_index), layer, area_fract) %>%
+    select(matches(shp_index), layer, area_fract) %>%
     set_colnames(c("basin", "idx", "fraction"))
 
   # Reduce 3D array to 2D matrix with row = idx, col = date
