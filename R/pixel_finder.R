@@ -4,6 +4,8 @@ library(maps)
 library(magrittr)
 library(rgdal)
 library(dplyr)
+library(tibble)
+library(pasta)
 
 
 # Load NCDF file ------------------------------------------------------
@@ -11,8 +13,11 @@ library(dplyr)
 # FOr testing one file on C:/
 ncdf_files <- "C:/pr_bc_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_day_AT_EZG_1971-2000.nc"
 ncin <- nc_open(filename = ncdf_files[1])
-
-
+tmp_array <- ncvar_get(ncin,"pr")
+time <- ncvar_get(ncin,"time")
+t_0 <- ncatt_get(ncin,"time","units")$value %>%
+  gsub("days since ", "", .) %>%
+  as.Date()
 # Load basin boundary shape file --------------------------------------
 bnd_dir <- "D:/UnLoadC3/00_RB_SWAT/raab_sb4/Watershed/Shapes/"
 bnd_file_name = "subs1.shp"
@@ -43,7 +48,9 @@ cell_size <- c(lonlat_proj@coords[1:rst_dim[2],1] %>% diff() %>% mean(),
 )
 
 # Create raster with cell indices as values
-idx_rst <- matrix(data = 1:rst_len, nrow = rst_dim[1]) %>%
+idx_rst <- matrix(data = 1:rst_len, nrow = rst_dim[2]) %>%
+  t() %>%
+  apply(., 2, rev) %>%
   raster()
 
 # Assign extent of point layer but adding cell extent
@@ -64,8 +71,29 @@ idx_poly <- as(idx_rst, "SpatialPolygonsDataFrame")
 int_poly <- raster::intersect(idx_poly, bnd_shp)
 
 # Extract data.frame with indices, subbasin number and pixel areas
-bsn_idx <- "Subbasin"
+bsn_lbl <- "Subbasin"
 idx_area <- data.frame(area = sapply(int_poly@polygons, FUN=function(x) {slot(x, 'area')})) %>%
   cbind(int_poly@data) %>%
-  dplyr::select(matches(bsn_idx), layer, area) %>%
-  mutate(area_fract = area/(cell_size[1]*cell_size[2]))
+  mutate(area_fract = area/(cell_size[1]*cell_size[2])) %>%
+  dplyr::select(matches(bsn_lbl), layer, area_fract) %>%
+  set_colnames(c("basin", "idx", "fraction"))
+
+# Reduce 3D array to 2D matrix with row = idx, col = date
+tmp_df <- matrix(data = tmp_array, ncol = dim(tmp_array)[3]) %>%
+  as.data.frame() %>%
+  set_colnames("time"%_%1:dim(tmp_array)[3]) %>%
+  mutate(idx = 1: rst_len)
+
+# Aggregate variable for subbasins
+idx_area <- left_join(idx_area, tmp_df, by = "idx") %>%
+  mutate_at(vars(starts_with("time")), funs(.*fraction)) %>%
+  select(-idx) %>%
+  group_by(basin) %>%
+  summarise_all(funs(sum)) %>%
+  mutate_at(vars(starts_with("time")), funs(./fraction)) %>%
+  select(-basin, -fraction) %>%
+  t() %>%
+  as_tibble() %>%
+  set_colnames(bsn_lbl%_%1:ncol(.)) %>%
+  add_column(date = t_0 + time, .before = 1)
+
