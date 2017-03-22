@@ -3,12 +3,12 @@
 #' @param ncdf_pth
 #' @param basin_shp
 #' @param ncdf_crs
-#' @param basin_lbl
+#' @param shp_index
 #'
 #' @return
 #' @export
 
-aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, basin_lbl) {
+aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index) {
 
   # Load NCDF file ------------------------------------------------------
   ncin <- nc_open(filename = ncdf_pth)
@@ -69,11 +69,10 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, basin_lbl) {
   int_poly <- raster::intersect(idx_poly, basin_shp)
 
   # Extract data.frame with indices, subbasin number and pixel areas
-  bsn_lbl <- "Subbasin"
   idx_area <- data.frame(area = sapply(int_poly@polygons, FUN=function(x) {slot(x, 'area')})) %>%
     cbind(int_poly@data) %>%
     mutate(area_fract = area/(cell_size[1]*cell_size[2])) %>%
-    dplyr::select(matches(bsn_lbl), layer, area_fract) %>%
+    dplyr::select(matches(shp_index), layer, area_fract) %>%
     set_colnames(c("basin", "idx", "fraction"))
 
   # Reduce 3D array to 2D matrix with row = idx, col = date
@@ -92,7 +91,7 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, basin_lbl) {
     select(-basin, -fraction) %>%
     t() %>%
     as_tibble() %>%
-    set_colnames(bsn_lbl%_%1:ncol(.)) %>%
+    set_colnames(shp_index%_%1:ncol(.)) %>%
     add_column(date = t_0 + time, .before = 1)
 
   return(idx_area)
