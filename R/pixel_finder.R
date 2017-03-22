@@ -2,6 +2,8 @@ library(ncdf4)
 library(raster)
 library(maps)
 library(magrittr)
+library(rgdal)
+library(dplyr)
 
 
 # Load NCDF file ------------------------------------------------------
@@ -34,9 +36,9 @@ lonlat <- SpatialPoints(coords = lonlat, proj4string = CRS("+proj=longlat +datum
 lonlat_proj <- spTransform(lonlat, CRSobj = crs(bnd_shp))
 
 # Derive lat/lon cell size of projected raster
-cell_size <- c(plonlat@coords[1:rst_dim[2],1] %>% diff() %>% mean(),
-               subtract(plonlat@coords[seq(1, rst_len - rst_dim[2], rst_dim[2]), 2],
-                        plonlat@coords[seq(1 + rst_dim[2], rst_len, rst_dim[2]), 2]) %>%
+cell_size <- c(lonlat_proj@coords[1:rst_dim[2],1] %>% diff() %>% mean(),
+               subtract(lonlat_proj@coords[seq(1, rst_len - rst_dim[2], rst_dim[2]), 2],
+                        lonlat_proj@coords[seq(1 + rst_dim[2], rst_len, rst_dim[2]), 2]) %>%
                  mean()
 )
 
@@ -45,7 +47,7 @@ idx_rst <- matrix(data = 1:rst_len, nrow = rst_dim[1]) %>%
   raster()
 
 # Assign extent of point layer but adding cell extent
-ext <- extent(plonlat)
+ext <- extent(lonlat_proj)
 ext@xmin <- ext@xmin - cell_size[2]/2
 ext@xmax <- ext@xmax + cell_size[2]/2
 ext@ymin <- ext@ymin - cell_size[1]/2
@@ -59,23 +61,11 @@ crs(idx_rst) <- crs(bnd_shp)
 idx_poly <- as(idx_rst, "SpatialPolygonsDataFrame")
 
 # Intersect index polygon with subbasin boundaries
-int_poly <- intersect(idx_poly, bnd_shp)
-idx_area <- data.frame(area = sapply(int_poly@polygons, FUN=function(x) {slot(x, 'area')}))
+int_poly <- raster::intersect(idx_poly, bnd_shp)
 
 # Extract data.frame with indices, subbasin number and pixel areas
-bsn_idx <-
-
-  idx_area <- cbind(int_poly@data, idx_area) %>%
-  select()
-
-
-
-
-plot(idx_poly)
-plot(bnd_shp, add = T)
-areaSpatialGrid(plonlat)
-plonlat@coords[1:126,1] %>% diff() %>% mean()
-
-plg_df <- SpatialPolygonsDataFrame(pxl, data.frame(cell = 1:length(lon)), match.ID=F)
-
-plonlat@coords[seq(1,nrow(plonlat@coords), rst_dim[2]),2] - plonlat@coords[seq(1 + rst_dim[2],nrow(plonlat@coords), rst_dim[2]),2]
+bsn_idx <- "Subbasin"
+idx_area <- data.frame(area = sapply(int_poly@polygons, FUN=function(x) {slot(x, 'area')})) %>%
+  cbind(int_poly@data) %>%
+  dplyr::select(matches(bsn_idx), layer, area) %>%
+  mutate(area_fract = area/(cell_size[1]*cell_size[2]))
