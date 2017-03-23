@@ -1,4 +1,5 @@
 library(rgdal)
+library(pasta)
 
 ncdf_file <- "C:/pr_bc_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_day_AT_EZG_1971-2000.nc"
 # Load basin boundary shape file --------------------------------------
@@ -21,7 +22,7 @@ for (i in 1:length(ncdf_files)){
   var_label <- file_meta[1]
   run_label <- paste(file_meta[c(1, 4:7,12)], collapse = "_")
 
-  clim_4[[run_label]] <- aggregate_ncdf(ncdf_pth = ncdf_files[i],
+  clim_4[[run_label]] <- aggregate_ncdf(ncdf_pth = ncdf_folder%//%ncdf_files[i],
                                         basin_shp = bnd_shp,
                                         ncdf_crs = crs_nc,
                                         shp_index = "Subbasin",
