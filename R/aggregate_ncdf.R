@@ -1,7 +1,7 @@
 #' Aggregate climate raster data for catchment subbasins
 #'
 #' @param ncdf_pth Path to the ncdf file
-#' @param basin_shp Shape file of the basin boundaries
+#' @param basin_shp Shape file of the basin subunits
 #' @param ncdf_crs Current reference system of ncdf file
 #' @param shp_index Name of the column in the basin shapefile attribute
 #'   table that provides the indices of the basin subunits

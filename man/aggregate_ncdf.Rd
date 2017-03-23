@@ -10,7 +10,7 @@ aggregate_ncdf(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
 \arguments{
 \item{ncdf_pth}{Path to the ncdf file}
 
-\item{basin_shp}{Shape file of the basin boundaries}
+\item{basin_shp}{Shape file of the basin subunits}
 
 \item{ncdf_crs}{Current reference system of ncdf file}
 
