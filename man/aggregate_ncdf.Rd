@@ -8,7 +8,18 @@ aggregate_ncdf(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
   lat_lbl = "lat", lon_lbl = "lon", time_lbl = "time")
 }
 \arguments{
-\item{shp_index}{}
+\item{ncdf_pth}{Path to the ncdf file}
+
+\item{basin_shp}{Shape file of the basin boundaries}
+
+\item{ncdf_crs}{Current reference system of ncdf file}
+
+\item{shp_index}{Name of the column in the basin shapefile attribute
+table that provides the indices of the basin subunits}
+}
+\value{
+Returns a list of tibbles. Each tibble provides the time series
+  of the aggregated variable for the respective basin subunits
 }
 \description{
 Aggregate climate raster data for catchment subbasins

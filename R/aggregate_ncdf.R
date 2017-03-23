@@ -1,19 +1,24 @@
 #' Aggregate climate raster data for catchment subbasins
 #'
-#' @param ncdf_pth
-#' @param basin_shp
-#' @param ncdf_crs
-#' @param shp_index
+#' @param ncdf_pth Path to the ncdf file
+#' @param basin_shp Shape file of the basin boundaries
+#' @param ncdf_crs Current reference system of ncdf file
+#' @param shp_index Name of the column in the basin shapefile attribute
+#'   table that provides the indices of the basin subunits
 #'
 #' @importFrom pasta %_%
-#' @importFrom dplyr mutate mutate_at select matches starts_with left_join vars funs group_by summarize_all
+#' @importFrom dplyr mutate mutate_at select matches starts_with left_join
+#'   vars funs group_by summarize_all
 #' @importFrom tibble as_tibble add_column
 #' @importFrom magrittr %>% set_colnames subtract
 #' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
-#' @importFrom raster raster rasterToPoints extent crs intersect removeTmpFiles
-#' @importFrom sp SpatialPoints SpatialPointsDataFrame spTransform SpatialPolygonsDataFrame
+#' @importFrom raster raster rasterToPoints extent crs intersect
+#'   removeTmpFiles
+#' @importFrom sp SpatialPoints SpatialPointsDataFrame spTransform
+#'   SpatialPolygonsDataFrame
 #'
-#' @return
+#' @return Returns a list of tibbles. Each tibble provides the time series
+#'   of the aggregated variable for the respective basin subunits
 #' @export
 
 aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
