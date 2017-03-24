@@ -1,11 +1,9 @@
 
 aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
 
-
 # Fetch header and binary files names from binary folder --------------
   hdr_lst <- list.files(path = bin_pth, pattern = ".hdr$")
   bil_lst <- list.files(path = bin_pth, pattern = ".bil$")
-
 
 # Get bin meta data from first found header file ----------------------
   header <- read.table(file = bin_pth%//%hdr_lst[1], header = FALSE,
@@ -28,22 +26,52 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
     return(sp_obj)
   }
 
+
+
   idx_poly <- matrix(data = 1:(header$NROWS * header$NCOLS),
                      nrow = header$NCOLS) %>%
     t() %>%
-    apply(., 2, rev) %>%
     raster() %>%
     assign_ext(., bin_ext) %>%
     assign_crs(., crs(bin_crs)) %>%
-    as(., "SpatialPolygonsDataFrame")
+    as(., "SpatialPolygonsDataFrame") %>%
+    spTransform(., CRSobj = crs(basin_shp))
 
+# Intersect index polygon with subbasin boundaries
+  int_poly <- intersect(idx_poly, basin_shp)
+
+  # Extract data.frame with indices, subbasin number and pixel areas
+  idx_area <- data.frame(area = sapply(int_poly@polygons,
+                                       FUN = function(x) {slot(x, 'area')})) %>%
+    cbind(int_poly@data) %>%
+    mutate(area_fract = area/(header$XDIM * header$YDIM)) %>%
+    dplyr::select(matches(shp_index), layer, area_fract) %>%
+    set_colnames(c("basin", "idx", "fraction"))
 
   i <- 1
 
   bil_i <- readBin(con = bin_pth%//%bil_lst[i],
                    what = "numeric",
                    n = header$NROWS * header$NCOLS * header$NBLOCKS,
-                   size = 4)
+                   size = 4) %>%
+    matrix(ncol = header$NBLOCKS) %>%
+    as.data.frame() %>%
+    set_colnames("time"%_%1:header$NBLOCKS) %>%
+    mutate(idx = 1:nrow(.))
+
+  # Aggregate variable for subbasins
+  idx_area <- left_join(idx_area, tmp_df, by = "idx") %>%
+    mutate_at(vars(starts_with("time")), funs(.*fraction)) %>%
+    select(-idx) %>%
+    group_by(basin) %>%
+    summarise_all(funs(sum)) %>%
+    mutate_at(vars(starts_with("time")), funs(./fraction)) %>%
+    select(-basin, -fraction) %>%
+    t() %>%
+    as_tibble() %>%
+    set_colnames(shp_index%_%1:ncol(.)) %>%
+    add_column(date = t_0 + time, .before = 1)
+
 
 
 }
@@ -53,9 +81,33 @@ library(pasta)
 library(magrittr)
 library(dplyr)
 library(raster)
+library(rgdal)
 
-bin_ext <- c(99000, 700000, 250000, 601000)
 bin_pth <- "F:/mirror_H/ETP_AT/ETP_AT_Exe/input/T2M"
+bin_ext <- c(99000, 700000, 250000, 601000)
+bin_crs <- crs(basin_shp)
+shp_index <- "Subbasin"
+
+
+mt <- array(bil_i, dim = c(header$NCOLS, header$NROWS, header$NBLOCKS))
+
+mt <- bil_i[1:(header$NCOLS*header$NROWS)]
+
+mt[,,1] %>% View
+  raster() %>%
+  plot
+
+  idx_rst <-  matrix(data = 1:(header$NROWS * header$NCOLS),
+                     nrow = header$NCOLS)
+  idx_rst[1:5, 1:5] <- 200000
+
+  idx_rst%<>%
+    t() %>%
+    raster() %>%
+      assign_ext(., bin_ext) %>%
+      assign_crs(., crs(bin_crs))
+  #     projectRaster(crs = crs(basin_shp))
+
 
 # NBLOCKS_OUT <- 24 # timesteps per day (leave unchanged)
 # offset <- 500 #leave unchanged
@@ -69,3 +121,14 @@ bin_pth <- "F:/mirror_H/ETP_AT/ETP_AT_Exe/input/T2M"
 # X1_INCA <- 699500 + offset
 # Y0_INCA <- 600500 - offset
 # Y1_INCA <- 250500 - offset
+
+
+# Load basin boundary shape file --------------------------------------
+bnd_dir <- "D:/UnLoadC3/00_RB_SWAT/raab_sb4/Watershed/Shapes/"
+bnd_file_name = "subs1.shp"
+basin_shp <- readOGR(paste(bnd_dir,bnd_file_name, sep = ""),
+                   layer = "subs1")
+
+
+plot(idx_poly)
+plot(basin_shp, add = T)
