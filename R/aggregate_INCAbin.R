@@ -49,43 +49,51 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
     set_colnames(c("basin", "idx", "fraction")) %>%
     mutate(idx = as.integer(idx))
 
-  i <- bil_lst[1]
+  t_step <- seq(24*3600/header$NBLOCKS, 24*3600, length.out = header$NBLOCKS)
 
-  date_0 <- strsplit(i, "\\_|\\.") %>%
-    unlist() %>%
-    .[2] %>%
-    paste("00:00") %>%
-    ymd_hm()
+  tm <- system.time({
+  sub_aggr <- list()
 
-  date_step <- date_0 + seq(24*3600/header$NBLOCKS,
-                            24*3600,
-                            length.out = header$NBLOCKS)
+  for( i_bil in bil_lst){
+    t_0 <- strsplit(i_bil, "\\_|\\.") %>%
+      unlist() %>%
+      .[2] %>%
+      paste("00:00") %>%
+      ymd_hm()
+
+    bil_i <- readBin(con = bin_pth%//%i_bil,
+                     what = "numeric",
+                     n = header$NROWS * header$NCOLS * header$NBLOCKS,
+                     size = 4) %>%
+      matrix(ncol = header$NBLOCKS) %>%
+      as_tibble() %>%
+      set_colnames("time"%_%1:header$NBLOCKS) %>%
+      mutate(idx = 1:nrow(.))
+
+    # Aggregate variable for subbasins
+    sub_aggr[[i_bil]] <- left_join(idx_area, bil_i, by = "idx") %>%
+      mutate_at(vars(starts_with("time")), funs(.*fraction)) %>%
+      select(-idx) %>%
+      group_by(basin) %>%
+      summarise_all(funs(sum)) %>%
+      mutate_at(vars(starts_with("time")), funs(./fraction)) %>%
+      select(-basin, -fraction) %>%
+      t() %>%
+      as_tibble() %>%
+      set_colnames(shp_index%_%1:ncol(.)) %>%
+      add_column(year = year(t_0 + t_step),
+                 mon  = month(t_0 + t_step),
+                 day  = day(t_0 + t_step),
+                 hour = hour(t_0 + t_step),
+                 min  = minute(t_0 + t_step),
+                 .before = 1)
+  }
+  sub_aggr <- bind_rows(sub_aggr)
 
 
+  })
 
-  bil_i <- readBin(con = bin_pth%//%bil_lst[i],
-                   what = "numeric",
-                   n = header$NROWS * header$NCOLS * header$NBLOCKS,
-                   size = 4) %>%
-    matrix(ncol = header$NBLOCKS) %>%
-    as_tibble() %>%
-    set_colnames("time"%_%1:header$NBLOCKS) %>%
-    mutate(idx = 1:nrow(.))
-
-  # Aggregate variable for subbasins
-  area_i <- left_join(idx_area, bil_i, by = "idx") %>%
-    mutate_at(vars(starts_with("time")), funs(.*fraction)) %>%
-    select(-idx) %>%
-    group_by(basin) %>%
-    summarise_all(funs(sum)) %>%
-    mutate_at(vars(starts_with("time")), funs(./fraction)) %>%
-    select(-basin, -fraction) %>%
-    t() %>%
-    as_tibble() %>%
-    set_colnames(shp_index%_%1:ncol(.)) %>%
-    add_column(date = t_0 + time, .before = 1)
-
-
+  tm
 
 }
 

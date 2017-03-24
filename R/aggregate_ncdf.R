@@ -122,7 +122,7 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
                day  = day(t_0 + time),
                hour = hour(t_0 + time),
                min  = minute(t_0 + time),
-               .before = 1) %>%
+               .before = 1)
 
   ws <- ls()
   ws <- ws[ws != "idx_area"]
