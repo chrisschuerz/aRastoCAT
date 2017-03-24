@@ -10,6 +10,7 @@
 #' @importFrom dplyr mutate mutate_at select matches starts_with left_join
 #'   vars funs group_by summarize_all
 #' @importFrom tibble as_tibble add_column
+#' @import     lubridate
 #' @importFrom magrittr %>% set_colnames subtract
 #' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
 #' @importFrom raster raster rasterToPoints extent crs intersect
@@ -116,7 +117,12 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
     t() %>%
     as_tibble() %>%
     set_colnames(shp_index%_%1:ncol(.)) %>%
-    add_column(date = t_0 + time, .before = 1)
+    add_column(year = year(t_0 + time),
+               mon  = month(t_0 + time),
+               day  = day(t_0 + time),
+               hour = hour(t_0 + time),
+               min  = minute(t_0 + time),
+               .before = 1) %>%
 
   ws <- ls()
   ws <- ws[ws != "idx_area"]

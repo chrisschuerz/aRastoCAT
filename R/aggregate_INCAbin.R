@@ -41,26 +41,39 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
   int_poly <- intersect(idx_poly, basin_shp)
 
   # Extract data.frame with indices, subbasin number and pixel areas
-  idx_area <- data.frame(area = sapply(int_poly@polygons,
+  idx_area <- tibble(area = sapply(int_poly@polygons,
                                        FUN = function(x) {slot(x, 'area')})) %>%
     cbind(int_poly@data) %>%
     mutate(area_fract = area/(header$XDIM * header$YDIM)) %>%
     dplyr::select(matches(shp_index), layer, area_fract) %>%
-    set_colnames(c("basin", "idx", "fraction"))
+    set_colnames(c("basin", "idx", "fraction")) %>%
+    mutate(idx = as.integer(idx))
 
-  i <- 1
+  i <- bil_lst[1]
+
+  date_0 <- strsplit(i, "\\_|\\.") %>%
+    unlist() %>%
+    .[2] %>%
+    paste("00:00") %>%
+    ymd_hm()
+
+  date_step <- date_0 + seq(24*3600/header$NBLOCKS,
+                            24*3600,
+                            length.out = header$NBLOCKS)
+
+
 
   bil_i <- readBin(con = bin_pth%//%bil_lst[i],
                    what = "numeric",
                    n = header$NROWS * header$NCOLS * header$NBLOCKS,
                    size = 4) %>%
     matrix(ncol = header$NBLOCKS) %>%
-    as.data.frame() %>%
+    as_tibble() %>%
     set_colnames("time"%_%1:header$NBLOCKS) %>%
     mutate(idx = 1:nrow(.))
 
   # Aggregate variable for subbasins
-  idx_area <- left_join(idx_area, tmp_df, by = "idx") %>%
+  area_i <- left_join(idx_area, bil_i, by = "idx") %>%
     mutate_at(vars(starts_with("time")), funs(.*fraction)) %>%
     select(-idx) %>%
     group_by(basin) %>%
@@ -81,6 +94,7 @@ library(pasta)
 library(magrittr)
 library(dplyr)
 library(raster)
+library(tibble)
 library(rgdal)
 
 bin_pth <- "F:/mirror_H/ETP_AT/ETP_AT_Exe/input/T2M"
