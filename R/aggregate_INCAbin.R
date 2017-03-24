@@ -130,6 +130,11 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
 
 }
 
+
+# F:\mirror_H\Lehre\Masterarbeiten\mHmMur\InputDataGeneration
+# F:\mirror_H\ETP_AT\ETP_AT_Exe\input
+
+
 # # Testing -------------------------------------------------------------
 # library(pasta)
 # library(magrittr)
