@@ -1,6 +1,10 @@
 
 aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
 
+  hdr_lst <- list.files(path = bin_pth, pattern = ".hdr$")
+  bil_lst <- list.files(path = bin_pth, pattern = ".bil$")
+
+  header <- read.table(file = bin_pth%//%hdr_lst[1] header = FALSE)
 }
 
 
@@ -38,3 +42,13 @@ for (i in 1:NDAYS) {
       size = 4
     )
   close(zz)
+
+
+
+
+
+
+# Testing -------------------------------------------------------------
+library(pasta)
+
+bin_pth <- "F:/mirror_H/ETP_AT/ETP_AT_Exe/input/T2M"
