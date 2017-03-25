@@ -1,11 +1,13 @@
-
-#' Title
+#' Aggregate binary INCA raster data for catchment subbasins
 #'
-#' @param bin_pth
-#' @param basin_shp
-#' @param bin_crs
-#' @param bin_ext
-#' @param shp_index
+#' @param bin_pth Path to folder where binary ('.bil') and header ('.hdr')
+#'   files are located
+#' @param basin_shp Shape file with the basin subunit polygons
+#' @param bin_crs String providing the reference system of the binary files
+#' @param bin_ext Vector of length four that provides xmin, xmax, ymin, ymax
+#'   of the raster extent of the binaries
+#' @param shp_index  Name of the column in the basin shapefile attribute
+#'   table that provides the indices of the basin subunits
 #'
 #' @importFrom pasta %_% %//%
 #' @importFrom dplyr mutate mutate_at select matches starts_with left_join
@@ -22,7 +24,8 @@
 #' @importFrom sp SpatialPoints SpatialPointsDataFrame spTransform
 #'   SpatialPolygonsDataFrame
 #'
-#' @return
+#' @return Returns tibble that provides the time series
+#'   of the aggregated variable for the respective basin subunits
 #' @export
 #'
 #' @examples

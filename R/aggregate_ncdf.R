@@ -1,7 +1,7 @@
-#' Aggregate climate raster data for catchment subbasins
+#' Aggregate ncdf climete raster data for catchment subbasins
 #'
 #' @param ncdf_pth Path to the ncdf file
-#' @param basin_shp Shape file of the basin subunits
+#' @param basin_shp Shape file with the basin subunit polygons
 #' @param ncdf_crs Current reference system of ncdf file
 #' @param shp_index Name of the column in the basin shapefile attribute
 #'   table that provides the indices of the basin subunits
@@ -18,7 +18,7 @@
 #' @importFrom sp SpatialPoints SpatialPointsDataFrame spTransform
 #'   SpatialPolygonsDataFrame
 #'
-#' @return Returns a list of tibbles. Each tibble provides the time series
+#' @return Returns a tibble that provides the time series
 #'   of the aggregated variable for the respective basin subunits
 #' @export
 

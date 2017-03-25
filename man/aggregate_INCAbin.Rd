@@ -2,14 +2,29 @@
 % Please edit documentation in R/aggregate_INCAbin.R
 \name{aggregate_INCAbin}
 \alias{aggregate_INCAbin}
-\title{Title}
+\title{Aggregate binary INCA raster data for catchment subbasins}
 \usage{
-aggregate_INCAbin(bin_pth, basin_shp, bin_crs, bin_ext, shp_index)
+aggregate_INCAbin(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n_core = 1)
 }
 \arguments{
-\item{shp_index}{}
+\item{bin_pth}{Path to folder where binary ('.bil') and header ('.hdr')
+files are located}
+
+\item{basin_shp}{Shape file with the basin subunit polygons}
+
+\item{bin_crs}{String providing the reference system of the binary files}
+
+\item{bin_ext}{Vector of length four that provides xmin, xmax, ymin, ymax
+of the raster extent of the binaries}
+
+\item{shp_index}{Name of the column in the basin shapefile attribute
+table that provides the indices of the basin subunits}
+}
+\value{
+Returns tibble that provides the time series
+  of the aggregated variable for the respective basin subunits
 }
 \description{
-Title
+Aggregate binary INCA raster data for catchment subbasins
 }
 
