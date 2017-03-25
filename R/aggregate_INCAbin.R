@@ -14,7 +14,7 @@
 #' @import     lubridate
 #' @import foreach
 #' @import doSNOW
-#' @importFrom parallel makeCluster stopCluster detectCores
+#' @importFrom parallel makeCluster stopCluster
 #' @importFrom magrittr %>% set_colnames subtract
 #' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
 #' @importFrom raster raster rasterToPoints extent crs intersect
@@ -26,7 +26,7 @@
 #' @export
 #'
 #' @examples
-aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
+aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n_core = 1) {
 
 # Fetch header and binary files names from binary folder --------------
   hdr_lst <- list.files(path = bin_pth, pattern = ".hdr$")
@@ -78,7 +78,7 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
 
   t_step <- seq(24*3600/header$NBLOCKS, 24*3600, length.out = header$NBLOCKS)
 
-  cl <- makeCluster(detectCores())
+  cl <- makeCluster(n_core)
   registerDoSNOW(cl)
 
   print(paste("Aggregating", length(bil_lst), "binary files:"))
