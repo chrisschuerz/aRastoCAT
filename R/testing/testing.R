@@ -5,7 +5,7 @@ ncdf_file <- "C:/pr_bc_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCL
 # Load basin boundary shape file --------------------------------------
 bnd_dir <- "D:/UnLoadC3/00_RB_SWAT/raab_sb4/Watershed/Shapes/"
 bnd_file_name = "subs1.shp"
-bnd_shp <- readOGR(paste(bnd_dir,bnd_file_name, sep = ""),
+basin_shp <- readOGR(paste(bnd_dir,bnd_file_name, sep = ""),
                    layer = "subs1")
 
 crs_nc <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
@@ -28,3 +28,43 @@ for (i in 1:length(ncdf_files)){
                                         shp_index = "Subbasin",
                                         var_lbl = var_label)
 }
+
+nc_test <- list.files(path = "C:/", pattern = ".nc$", full.names = TRUE)
+
+clim_test <- aggregate_ncdf(ncdf_pth = nc_test,
+                            basin_shp = basin_shp,
+                            ncdf_crs = crs_nc,
+                            shp_index = "Subbasin",
+                            var_lbl = "pr")
+
+
+# Test aggregate_INCAbin ----------------------------------------------
+bin_pth <- "D:/INCA_T"
+
+t1 <- system.time({
+test1 <- aggregate_INCAbin(bin_pth = bin_pth,
+                          basin_shp = basin_shp, bin_crs = crs(basin_shp),
+                          bin_ext = c(99000, 700000, 250000, 601000),
+                          shp_index = "Subbasin", n_core = 1)
+
+})
+t1
+
+t4 <- system.time({
+test4 <- aggregate_INCAbin(bin_pth = bin_pth,
+                          basin_shp = basin_shp, bin_crs = crs(basin_shp),
+                          bin_ext = c(99000, 700000, 250000, 601000),
+                          shp_index = "Subbasin", n_core = 4)
+
+})
+t4
+
+t8 <- system.time({
+test8 <- aggregate_INCAbin(bin_pth = bin_pth,
+                          basin_shp = basin_shp, bin_crs = crs(basin_shp),
+                          bin_ext = c(99000, 700000, 250000, 601000),
+                          shp_index = "Subbasin", n_core = 8)
+
+})
+
+t8

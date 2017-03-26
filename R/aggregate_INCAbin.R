@@ -79,26 +79,28 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n
     set_colnames(c("basin", "idx", "fraction")) %>%
     mutate(idx = as.integer(idx))
 
-  t_step <- seq(24*3600/header$NBLOCKS, 24*3600, length.out = header$NBLOCKS)
 
-  cl <- makeCluster(n_core)
-  registerDoSNOW(cl)
+  # cl <- makeCluster(n_core)
+  # registerDoSNOW(cl)
+  #
+  # print(paste("Aggregating", length(bil_lst), "binary files:"))
+  # prgr_bar <- txtProgressBar(min = 0, max = length(bil_lst), initial = 0, style = 3)
+  # progress <- function(n) setTxtProgressBar(prgr_bar, n)
+  # opts <- list(progress = progress)
 
-  print(paste("Aggregating", length(bil_lst), "binary files:"))
-  prgr_bar <- txtProgressBar(min = 0, max = length(bil_lst), initial = 0, style = 3)
-  progress <- function(n) setTxtProgressBar(prgr_bar, n)
-  opts <- list(progress = progress)
+  aggregate_i <- function(bin_i, idx_area, header, bin_pth, shp_index){
 
-  sub_aggr <- foreach( i_bil = 1:length(bil_lst),
-                       .packages = c("dplyr", "tibble", "lubridate", "magrittr", "pasta"),
-                       .options.snow = opts) %dopar% {
-    t_0 <- strsplit(bil_lst[i_bil], "\\_|\\.") %>%
+  # sub_aggr <- foreach( i_bil = 1:length(bil_lst),
+  #                      .packages = c("dplyr", "tibble", "lubridate", "magrittr", "pasta"),
+  #                      .options.snow = opts) %dopar% {
+    t_0 <- strsplit(bin_i, "\\_|\\.") %>%
       unlist() %>%
       .[2] %>%
       paste("00:00") %>%
       ymd_hm()
+    t_step <- seq(24*3600/header$NBLOCKS, 24*3600, length.out = header$NBLOCKS)
 
-    bil_i <- readBin(con = bin_pth%//%bil_lst[i_bil],
+    bil_i <- readBin(con = bin_pth%//%bin_i,
                      what = "numeric",
                      n = header$NROWS * header$NCOLS * header$NBLOCKS,
                      size = 4) %>%
@@ -110,11 +112,11 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n
     # Aggregate variable for subbasins
     aggr_i <- left_join(idx_area, bil_i, by = "idx") %>%
       mutate_at(vars(starts_with("time")), funs(.*fraction)) %>%
-      select(-idx) %>%
+      dplyr::select(-idx) %>%
       group_by(basin) %>%
       summarise_all(funs(sum)) %>%
       mutate_at(vars(starts_with("time")), funs(./fraction)) %>%
-      select(-basin, -fraction) %>%
+      dplyr::select(-basin, -fraction) %>%
       t() %>%
       as_tibble() %>%
       set_colnames(shp_index%_%1:ncol(.)) %>%
@@ -127,7 +129,18 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n
 
     return(aggr_i)
   }
-  stopCluster(cl)
+  # stopCluster(cl)
+  t1 <- system.time({
+  sub_aggr <- lapply(bil_lst, aggregate_i, idx_area, header)
+
+  })
+
+  tpar <- system.time({
+    cl <- makeCluster(4)
+    clusterEvalQ(cl, {library(tibble); library(dplyr); library(lubridate); library(magrittr); library(pasta)})
+    sub_aggr_par <- parLapply(cl, bil_lst, aggregate_i, idx_area, header, bin_pth, shp_index)
+    stopCluster(cl)
+  })
 
   sub_aggr <- bind_rows(sub_aggr)
 
