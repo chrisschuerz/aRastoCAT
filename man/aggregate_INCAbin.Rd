@@ -4,7 +4,7 @@
 \alias{aggregate_INCAbin}
 \title{Aggregate binary INCA raster data for catchment subbasins}
 \usage{
-aggregate_INCAbin(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n_core = 1)
+aggregate_INCAbin(bin_pth, basin_shp, bin_crs, bin_ext, shp_index)
 }
 \arguments{
 \item{bin_pth}{Path to folder where binary ('.bil') and header ('.hdr')

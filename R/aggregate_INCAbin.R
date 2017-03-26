@@ -13,10 +13,7 @@
 #' @importFrom dplyr mutate mutate_at select matches starts_with left_join
 #'   vars funs group_by summarize_all
 #' @importFrom tibble as_tibble add_column
-#' @import     lubridate
-#' @import foreach
-#' @import doSNOW
-#' @importFrom parallel makeCluster stopCluster
+#' @importFrom lubridate year month day hour minute
 #' @importFrom magrittr %>% set_colnames subtract
 #' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
 #' @importFrom raster raster rasterToPoints extent crs intersect
@@ -29,7 +26,7 @@
 #' @export
 #'
 #' @examples
-aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n_core = 1) {
+aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
 
 # Fetch header and binary files names from binary folder --------------
   hdr_lst <- list.files(path = bin_pth, pattern = ".hdr$")
@@ -89,10 +86,6 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n
   # opts <- list(progress = progress)
 
   aggregate_i <- function(bin_i, idx_area, header, bin_pth, shp_index){
-
-  # sub_aggr <- foreach( i_bil = 1:length(bil_lst),
-  #                      .packages = c("dplyr", "tibble", "lubridate", "magrittr", "pasta"),
-  #                      .options.snow = opts) %dopar% {
     t_0 <- strsplit(bin_i, "\\_|\\.") %>%
       unlist() %>%
       .[2] %>%
@@ -112,11 +105,11 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n
     # Aggregate variable for subbasins
     aggr_i <- left_join(idx_area, bil_i, by = "idx") %>%
       mutate_at(vars(starts_with("time")), funs(.*fraction)) %>%
-      dplyr::select(-idx) %>%
+      select(-idx) %>%
       group_by(basin) %>%
       summarise_all(funs(sum)) %>%
       mutate_at(vars(starts_with("time")), funs(./fraction)) %>%
-      dplyr::select(-basin, -fraction) %>%
+      select(-basin, -fraction) %>%
       t() %>%
       as_tibble() %>%
       set_colnames(shp_index%_%1:ncol(.)) %>%
@@ -129,19 +122,8 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index, n
 
     return(aggr_i)
   }
-  # stopCluster(cl)
-  t1 <- system.time({
-  sub_aggr <- lapply(bil_lst, aggregate_i, idx_area, header)
 
-  })
-
-  tpar <- system.time({
-    cl <- makeCluster(4)
-    clusterEvalQ(cl, {library(tibble); library(dplyr); library(lubridate); library(magrittr); library(pasta)})
-    sub_aggr_par <- parLapply(cl, bil_lst, aggregate_i, idx_area, header, bin_pth, shp_index)
-    stopCluster(cl)
-  })
-
+  sub_aggr <- lapply(bil_lst, aggregate_i, idx_area, header, bin_pth, shp_index)
   sub_aggr <- bind_rows(sub_aggr)
 
 }

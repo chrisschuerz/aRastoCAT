@@ -45,7 +45,7 @@ t1 <- system.time({
 test1 <- aggregate_INCAbin(bin_pth = bin_pth,
                           basin_shp = basin_shp, bin_crs = crs(basin_shp),
                           bin_ext = c(99000, 700000, 250000, 601000),
-                          shp_index = "Subbasin", n_core = 1)
+                          shp_index = "Subbasin")
 
 })
 t1
