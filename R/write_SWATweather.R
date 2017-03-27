@@ -30,8 +30,7 @@ write_SWATweather <- function(pcp_tbl = NULL, tmp_tbl = NULL,
                               tmn_tbl = NULL, tmx_tbl = NULL,
                               hmd_tbl = NULL, slr_tbl = NULL,
                               wnd_tbl = NULL, basin_shp,
-                              time_step = "day", out_type = "ArcSWAT",
-                              write_pth) {
+                              out_type = "ArcSWAT", write_pth) {
 # Static properties in a SWAT2012 project ---------------------------------
   file_name <- tibble(tbl  = c("pcp_tbl", "tmp_tbl", "hmd_tbl",
                                "slr_tbl", "wnd_tbl"),
@@ -53,44 +52,36 @@ write_SWATweather <- function(pcp_tbl = NULL, tmp_tbl = NULL,
   }
 
   if(!is.null(tmp_tbl) & !any(diff(60 * tmp_tbl$hour + tmp_tbl$min) == 0)){
-    #HERE IMPLEMENT AGGREGATION OF TIME SERIES!!!
+    tmn_tbl <- aggregate_timeseries(tmp_tbl, time_int = "day", aggr_fun = min)
+    tmx_tbl <- aggregate_timeseries(tmp_tbl, time_int = "day", aggr_fun = max)
+    rm(tmp_tbl)
   } else {
     stop("For calculation of tmin/tmax subdaily timeseries of tmp is required.")
   }
 
   if(!is.null(tmn_tbl) & !is.null(tmx_tbl)){
-  tmn_tbl %<>% set_colnames(c("year", "mon", "day", "hour", "min",
-                              "tmn"%_%loc_data$ID))
-  tmx_tbl %<>% set_colnames(c("year", "mon", "day", "hour", "min",
-                              "tmx"%_%loc_data$ID))
-  tmp_sort <- c("date", rep(c("tmx", "tmn"), nrow(loc_data))%_%
+  tmn_tbl %<>%
+    select(-hour, -min) %>%
+    set_colnames(c("year", "mon", "day", "tmn"%_%loc_data$ID))
+  tmx_tbl %<>%
+    select(-hour, -min) %>%
+    set_colnames(c("year", "mon", "day", "tmx"%_%loc_data$ID))
+  tmp_sort <- c("year", "mon", "day", rep(c("tmx", "tmn"), nrow(loc_data))%_%
                         rep(loc_data$ID, each = 2))
   tmp_tbl <- left_join(tmn_tbl, tmx_tbl,
-                       by = c("year", "mon", "day", "hour", "min")) %>%
+                       by = c("year", "mon", "day")) %>%
     select(one_of(tmp_sort))
 
   rm(tmn_tbl, tmx_tbl)
   }
 
   tbl_lst <- ls(pattern = "_tbl$")
-  nrow_tbl <- c()
-  for(tbl_i in tbl_lst){
-    nrow_tbl <- c(nrow_tbl, get(i_tbl) %>% nrow())
-  }
-  if(sum(diff(nrow_tbl)) > 0) {
-    stop("Input tables differ in length! Try aggregate timeseries.")
-  }
-
 
   loc_data <- tibble(ID = basin_shp@data$OBJECTID,
                      NAME = "sub"%_%ID,
                      LAT = basin_shp@data$Lat,
                      LONG = basin_shp@data$Long_,
                      ELEVATION = basin_shp@data$Elev)
-
-
-
-  tbl_lst <- ls(pattern = "_tbl$")
 
   for (i_tbl in tbl_lst){
     var <- get(i_tbl)
