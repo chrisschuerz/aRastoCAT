@@ -126,7 +126,7 @@ write_txtIOheader <- function(i_tbl, var_tbl, loc_data, write_pth, file_name){
 }
 
 write_txtIOtable <- function(i_tbl, var_tbl, write_pth, file_name, fmt){
-  if(sum(abs(diff(60 * var_tbl$hour + var_tbl$min))) > 0){
+  if(is_subdaily(var_tbl)){
     var_tbl %<>% add_column(date = as.Date(var_tbl$year%-%
                                            var_tbl$mon%-%
                                            var_tbl$day) %>%
