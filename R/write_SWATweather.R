@@ -34,6 +34,15 @@ write_SWATweather <- function(pcp_tbl = NULL, tmn_tbl = NULL, tmx_tbl = NULL,
     stop("tmn_tbl and tmx_tbl must be provided together!")
   }
 
+  tbl_lst <- ls(pattern = "_tbl$")
+  nrow_tbl <- c()
+  for(tbl_i in tbl_lst){
+    nrow_tbl <- c(nrow_tbl, get(i_tbl) %>% nrow())
+  }
+  if(sum(diff(nrow_tbl)) > 0) {
+    stop("Input tables differ in length! Try aggregate timeseries")
+  }
+
 
   loc_data <- tibble(ID = basin_shp@data$OBJECTID,
                      NAME = "sub"%_%ID,
