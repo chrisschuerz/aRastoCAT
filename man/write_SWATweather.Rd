@@ -6,7 +6,7 @@
 \usage{
 write_SWATweather(pcp_tbl = NULL, tmp_tbl = NULL, tmn_tbl = NULL,
   tmx_tbl = NULL, hmd_tbl = NULL, slr_tbl = NULL, wnd_tbl = NULL,
-  basin_shp, time_step = "day", out_type = "ArcSWAT", write_pth)
+  basin_shp, out_type = "ArcSWAT", write_pth)
 }
 \arguments{
 \item{pcp_tbl}{data.frame providing time series of daily precipitation
