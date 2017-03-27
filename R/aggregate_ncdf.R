@@ -1,14 +1,14 @@
-#' Aggregate ncdf climete raster data for catchment subbasins
+#' Aggregate NCDF Climate (Raster) Data for Catchment Subbasins
 #'
 #' @param ncdf_pth Path to the ncdf file
-#' @param basin_shp Shape file with the basin subunit polygons
+#' @param basin_shp Shape file with the basin sub-unit polygons
 #' @param ncdf_crs Current reference system of ncdf file
 #' @param shp_index Name of the column in the basin shapefile attribute
 #'   table that provides the indices of the basin subunits
 #'
 #' @importFrom pasta %_%
 #' @importFrom dplyr mutate mutate_at select matches starts_with left_join
-#'   vars funs group_by summarize_all
+#'   vars funs group_by summarise_all
 #' @importFrom tibble as_tibble add_column
 #' @import     lubridate
 #' @importFrom magrittr %>% set_colnames subtract
