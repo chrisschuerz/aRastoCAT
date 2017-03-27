@@ -2,6 +2,7 @@
 
 export(aggregate_INCAbin)
 export(aggregate_ncdf)
+export(aggregate_timeseries)
 export(write_SWATweather)
 import(lubridate)
 importFrom(dplyr,funs)
