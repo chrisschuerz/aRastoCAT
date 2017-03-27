@@ -12,8 +12,7 @@ aggregate_time <- function(ts_tbl, time_int = "day", aggr_fun = mean) {
   time_step <- c("year", "mon", "day", "hour", "min")
   time_step <- time_step[1:which(time_step == time_int)] %>%
     lapply(., as.symbol)
-
-
+  #
   ts_tbl %>%
     group_by_(.dots = time_step) %>%
     summarise_at(vars(-year, -mon, -day, -hour, - min), funs(aggr_fun)) %>%
