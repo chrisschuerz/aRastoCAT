@@ -24,8 +24,7 @@
 #' @return Returns tibble that provides the time series
 #'   of the aggregated variable for the respective basin subunits
 #' @export
-#'
-#' @examples
+
 aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
 
 # Fetch header and binary files names from binary folder --------------

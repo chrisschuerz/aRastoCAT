@@ -1,11 +1,23 @@
 Package: aRastoCAT
 Type: Package
-Title: Aggregation of input data for different hydrological models (see: rasterkatz)
+Title: a Raster Climate data Aggregation Tool
 Version: 0.1.0
-Author: Christoph Schürz 
+Author: person("Christoph", "Schuerz",
+                email = "c.schuerz@gmail.com",
+                role = c("aut", "cre"))
 Maintainer: Christoph Schürz <c.schuerz@gmail.com>
-Description: R version of Mathews Rastercat 
-License: GPL3
+Description:Aggregation of different raster climate data for the input in 
+    hydrological models. 
+License: GPL-3
 Encoding: UTF-8
 LazyData: true
+Imports: 
+    dplyr,
+    lubridate,
+    magrittr,
+    ncdf4,
+    pasta,
+    raster,
+    sp,
+    tibble
 RoxygenNote: 5.0.1
