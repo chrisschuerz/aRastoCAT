@@ -11,7 +11,7 @@
 #'
 #' @importFrom pasta %_% %//%
 #' @importFrom dplyr mutate mutate_at select matches starts_with left_join
-#'   vars funs group_by summarize_all
+#'   vars funs group_by ungroup summarise_all
 #' @importFrom tibble as_tibble add_column
 #' @importFrom lubridate year month day hour minute
 #' @importFrom magrittr %>% set_colnames subtract
@@ -74,7 +74,10 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
     mutate(area_fract = area/(header$XDIM * header$YDIM)) %>%
     dplyr::select(matches(shp_index), layer, area_fract) %>%
     set_colnames(c("basin", "idx", "fraction")) %>%
-    mutate(idx = as.integer(idx))
+    mutate(idx = as.integer(idx)) %>%
+    group_by(basin, idx) %>%
+    summarise_all(funs(sum)) %>%
+    ungroup()
 
 
   # cl <- makeCluster(n_core)

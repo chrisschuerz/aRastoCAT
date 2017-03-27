@@ -2,7 +2,7 @@
 % Please edit documentation in R/aggregate_ncdf.R
 \name{aggregate_ncdf}
 \alias{aggregate_ncdf}
-\title{Aggregate ncdf climete raster data for catchment subbasins}
+\title{Aggregate NCDF Climate (Raster) Data for Catchment Subbasins}
 \usage{
 aggregate_ncdf(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
   lat_lbl = "lat", lon_lbl = "lon", time_lbl = "time")
@@ -10,7 +10,7 @@ aggregate_ncdf(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
 \arguments{
 \item{ncdf_pth}{Path to the ncdf file}
 
-\item{basin_shp}{Shape file with the basin subunit polygons}
+\item{basin_shp}{Shape file with the basin sub-unit polygons}
 
 \item{ncdf_crs}{Current reference system of ncdf file}
 
@@ -22,6 +22,6 @@ Returns a tibble that provides the time series
   of the aggregated variable for the respective basin subunits
 }
 \description{
-Aggregate ncdf climete raster data for catchment subbasins
+Aggregate NCDF Climate (Raster) Data for Catchment Subbasins
 }
 

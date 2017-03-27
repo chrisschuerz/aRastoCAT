@@ -98,7 +98,11 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
     cbind(int_poly@data) %>%
     mutate(area_fract = area/(cell_size[1]*cell_size[2])) %>%
     select(matches(shp_index), layer, area_fract) %>%
-    set_colnames(c("basin", "idx", "fraction"))
+    set_colnames(c("basin", "idx", "fraction")) %>%
+    mutate(idx = as.integer(idx)) %>%
+    group_by(basin, idx) %>%
+    summarise_all(funs(sum)) %>%
+    ungroup()
 
   # Reduce 3D array to 2D matrix with row = idx, col = date
   tmp_df <- matrix(data = tmp_array, ncol = dim(tmp_array)[3]) %>%

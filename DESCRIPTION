@@ -3,7 +3,7 @@ Type: Package
 Title: Aggregation of input data for different hydrological models (see: rasterkatz)
 Version: 0.1.0
 Author: Christoph Schürz 
-Maintainer: Christoph Schürz <c.schürz@gmail.com>
+Maintainer: Christoph Schürz <c.schuerz@gmail.com>
 Description: R version of Mathews Rastercat 
 License: GPL3
 Encoding: UTF-8
