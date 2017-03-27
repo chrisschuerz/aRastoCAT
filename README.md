@@ -1,2 +1,3 @@
-# aRastoCAT
-A raster climate data aggregation tool
+![](https://github.com/chrisschuerz/aRastoCAT/blob/master/figures/arastocat_logo.png)
+***
+
