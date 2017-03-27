@@ -4,9 +4,9 @@
 \alias{write_SWATweather}
 \title{Write SWAT weather input from aggregated climate variable time series}
 \usage{
-write_SWATweather(pcp_tbl = NULL, tmn_tbl = NULL, tmx_tbl = NULL,
-  hmd_tbl = NULL, slr_tbl = NULL, wnd_tbl = NULL, basin_shp, write_pth,
-  out_type = "ArcSWAT")
+write_SWATweather(pcp_tbl = NULL, tmp_tbl = NULL, tmn_tbl = NULL,
+  tmx_tbl = NULL, hmd_tbl = NULL, slr_tbl = NULL, wnd_tbl = NULL,
+  basin_shp, time_step = "day", out_type = "ArcSWAT", write_pth)
 }
 \arguments{
 \item{pcp_tbl}{data.frame providing time series of daily precipitation
@@ -26,12 +26,12 @@ for the basins subunits}
 
 \item{basin_shp}{Shape file of the basin subunits}
 
-\item{write_pth}{Path where the SWAT input files are written}
-
 \item{out_type}{Type of output: either "ArcSWAT" to create input files
 for ArcSWAT model setup or "txtIO" for direct input into the txtInOut
 folder of an existing project (be careful with this method! Might
 require changes in file.cio and *.sub files!)}
+
+\item{write_pth}{Path where the SWAT input files are written}
 
 \item{wnd_tbldata.frame}{providing time series of daily average wind
 speed for the basins subunits}
