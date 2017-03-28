@@ -117,11 +117,11 @@ write_txtIOheader <- function(i_tbl, var_tbl, loc_data, write_pth, file_name){
       mutate_at(.cols =   4, funs(sprintf(fmt[2], .))) %>%
       set_colnames(col_name) %>%
       t() %>%
-      write.table(file = write_pth%//%file_name$file[file_name$tbl == i_tbl],
+      write.table(file =  write_pth%//%file_name$file[file_name$tbl == i_tbl],
                   quote = FALSE, col.names = FALSE, sep = "")
   } else {
     writeLines(text = paste("Input File", file_name$file[file_name$tbl == i_tbl]),
-               con = write_pth%//%file_name$file[file_name$tbl == i_tbl])
+               con =  write_pth%//%file_name$file[file_name$tbl == i_tbl])
   }
 }
 
@@ -149,8 +149,9 @@ write_txtIOtable <- function(i_tbl, var_tbl, write_pth, file_name, fmt){
   var_tbl %>%
     mutate_at(.cols = 2:ncol(.), funs(ifelse(is.na(.), -99.0, .))) %>%
     mutate_at(.cols = 2:ncol(.), funs(sprintf(fmt$fmt[fmt$tbl == i_tbl], .))) %>%
-    write.table(file = write_pth%//%file_name$file[file_name$tbl == i_tbl], sep = "",
-                append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE)
+    write.table(file = write_pth%//%file_name$file[file_name$tbl == i_tbl],
+                sep =  "", append = TRUE, quote = FALSE, col.names = FALSE,
+                row.names = FALSE)
 }
 
 write_ArcSWAT <- function(i_tbl, var_tbl, loc_data, write_pth, file_name) {
@@ -165,7 +166,31 @@ write_ArcSWAT <- function(i_tbl, var_tbl, loc_data, write_pth, file_name) {
                 sprintf("%02d",var_tbl$day[1])
   }
   var_name <- gsub("_tbl$", "", i_tbl)
-  if(!dir.exists(write_pth%//%var_name){
+  if(!dir.exists(write_pth%//%var_name)){
+    dir.create(write_pth%//%var_name)
+
+    loc_data %<>% mutate_at(.cols = 3:5, funs(round(., digits = 3)))
+    write.csv(x = loc_data, file = write_pth%//%var_name%//%
+              var_name%_%"loc.txt", quote = FALSE, row.names = FALSE)
+
+    var_tbl %<>%
+      dplyr::select(-matches("year"), -matches("mon"), -matches("day"),
+             -matches("hour"), -matches("min")) %>%
+      set_colnames(loc_data$NAME) %>%
+      mutate_all(funs(ifelse(is.na(.), -99.0, .))) %>%
+      mutate_all(funs(round(.,digits = 2)))
+
+    write_sub_i <- function(var_tbl, t_stamp, write_pth, var_name){
+      write.table(t_stamp, file = write_pth%//%var_name%//%names(var_tbl)%.%
+                  "txt", quote = FALSE, row.names = FALSE, col.names = FALSE)
+      write.table(var_tbl, file = write_pth%//%var_name%//%names(var_tbl)%.%
+                  "txt", quote = FALSE, row.names = FALSE, col.names = FALSE,
+                  append = TRUE)
+    }
+
+    for(i_sub in colnames(var_tbl)){
+      write_sub_i(var_tbl[i_sub], t_stamp, write_pth, var_name)
+    }
 
   } else {
     stop("Files for variable"%&&%var_name%&&%"already exists in the given path!")
