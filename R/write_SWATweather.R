@@ -169,7 +169,7 @@ write_ArcSWAT <- function(i_tbl, var_tbl, loc_data, write_pth, file_name) {
   }
   var_name <- gsub("_tbl$", "", i_tbl)
   if(!dir.exists(write_pth%//%var_name)){
-    dir.create(write_pth%//%var_name)
+    dir.create(write_pth%//%var_name, recursive = TRUE)
 
     loc_data %<>% mutate_at(.cols = 3:5, funs(round(., digits = 3)))
     write.csv(x = loc_data, file = write_pth%//%var_name%//%
@@ -180,39 +180,37 @@ write_ArcSWAT <- function(i_tbl, var_tbl, loc_data, write_pth, file_name) {
                                               var_tbl$day[1])%&&%"to"%&&%
                                       as.Date(var_tbl$year[n]%-%var_tbl$mon[n]%-%
                                               var_tbl$day[n]),
-                  "time step =    "%&%ifelse(exists("t_diff"), t_diff%&&%"min",
-                                             "1 day"),
+                  "time step =    "%&%ifelse(is_subdaily(var_tbl),
+                                             t_diff%&&%"min", "1 day"),
                   "number years = "%&%(var_tbl$year[n] - var_tbl$year[1] + 1),
+                  "",
                   "NA values :    ")
 
-
     writeLines(log_file, con = write_pth%//%var_name%//%var_name%_%"info.log")
-
-
 
     var_tbl %<>%
       dplyr::select(-matches("year"), -matches("mon"), -matches("day"),
              -matches("hour"), -matches("min")) %>%
-      set_colnames(loc_data$NAME) %>%
       mutate_all(funs(ifelse(is.na(.), -99.0, .))) %>%
       mutate_all(funs(round(.,digits = 2)))
 
-    write_sub_i <- function(var_i, t_stamp, write_pth, var_name){
-      write.table(t_stamp, file = write_pth%//%var_name%//%names(var_i)%.%
-                  "txt", quote = FALSE, row.names = FALSE, col.names = FALSE)
-      write.table(var_i, file = write_pth%//%var_name%//%names(var_i)%.%
-                  "txt", quote = FALSE, row.names = FALSE, col.names = FALSE,
-                  append = TRUE)
-      write.table("  "%&%sum(var_i == -99.0)%&&%"NA values in"%&&%names(var_i),
+
+    for(i_sub in loc_data$ID){
+      var_i <- var_tbl %>%
+        select(ends_with("_"%&%i_sub))
+
+      write.table(t_stamp, file = write_pth%//%var_name%//%
+                  loc_data$NAME[i_sub]%.%"txt",
+                  quote = FALSE, row.names = FALSE, col.names = FALSE)
+      write.table(var_i, sep = ",", file = write_pth%//%var_name%//%
+                  loc_data$NAME[i_sub]%.%"txt", quote = FALSE,
+                  row.names = FALSE, col.names = FALSE, append = TRUE)
+      write.table("  "%&%sum(var_tbl == -99.0)%&&%"NA values in"%&&%
+                  loc_data$NAME[i_sub],
                   file = write_pth%//%var_name%//%var_name%_%"info.log",
                   append = TRUE, col.names = FALSE, row.names = FALSE,
                   quote = FALSE)
     }
-
-    for(i_sub in colnames(var_tbl)){
-      write_sub_i(var_tbl[i_sub], t_stamp, write_pth, var_name)
-    }
-
   } else {
     stop("Files for variable"%&&%var_name%&&%"already exists in the given path!")
   }
