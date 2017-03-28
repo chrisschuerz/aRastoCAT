@@ -18,7 +18,7 @@
 #'   for ArcSWAT model setup or "txtIO" for direct input into the txtInOut
 #'   folder of an existing project (be careful with this method! Might
 #'   require changes in file.cio and *.sub files!)
-#' @importFrom pasta %_% %//%
+#' @importFrom pasta %_% %//% %&%
 #' @importFrom dplyr mutate mutate_at select one_of left_join vars funs
 #' @importFrom tibble tibble
 #' @importFrom magrittr %>% %<>% set_colnames
@@ -152,6 +152,30 @@ write_txtIOtable <- function(i_tbl, var_tbl, write_pth, file_name, fmt){
     write.table(file = write_pth%//%file_name$file[file_name$tbl == i_tbl], sep = "",
                 append = TRUE, quote = FALSE, col.names = FALSE, row.names = FALSE)
 }
+
+write_ArcSWAT <- function(i_tbl, var_tbl, loc_data, write_pth, file_name) {
+  if(is_subdaily(var_tbl)){
+    h <- ifelse(rep(is.null(var_tbl$hour),2), c(0L,0L), var_tbl$hour[1:2])
+    m <- ifelse(rep(is.null(var_tbl$min),2),  c(0L,0L), var_tbl$min[1:2])
+    t_diff <- (60*h + m) %>% diff
+    t_stamp <- paste(var_tbl$year[1]%&%sprintf("%02d",var_tbl$mon[1])%&%
+                     sprintf("%02d",var_tbl$day[1]), t_diff, sep = ", ")
+  } else {
+    t_stamp <- var_tbl$year[1]%&%sprintf("%02d",var_tbl$mon[1])%&%
+                sprintf("%02d",var_tbl$day[1])
+  }
+  var_name <- gsub("_tbl$", "", i_tbl)
+  if(!dir.exists(write_pth%//%var_name){
+
+  } else {
+    stop("Files for variable"%&&%var_name%&&%"already exists in the given path!")
+  }
+}
+
+
+
+
+
 
 is_subdaily <- function(var_tbl) {
   subdaily <- FALSE
