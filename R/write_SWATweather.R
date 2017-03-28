@@ -18,7 +18,7 @@
 #'   for ArcSWAT model setup or "txtIO" for direct input into the txtInOut
 #'   folder of an existing project (be careful with this method! Might
 #'   require changes in file.cio and *.sub files!)
-#' @importFrom pasta %_% %//% %&%
+#' @importFrom pasta %_% %//% %&% %&&%
 #' @importFrom dplyr mutate mutate_at select one_of left_join vars funs
 #' @importFrom tibble tibble
 #' @importFrom magrittr %>% %<>% set_colnames
@@ -87,7 +87,9 @@ write_SWATweather <- function(pcp_tbl = NULL, tmp_tbl = NULL,
     var <- get(i_tbl)
     if(!is.null(var)){
       switch(out_type,
-             ArcSWAT = {stop("ArcSWAT input generation not implemented yet!")},
+             ArcSWAT = {
+               write_ArcSWAT(i_tbl, var, loc_data, write_pth, file_name)
+             },
              txtIO   = {
                write_txtIOheader(i_tbl, var, loc_data, write_pth, file_name)
                write_txtIOtable(i_tbl, var, write_pth, file_name, tbl_fmt)
@@ -173,6 +175,21 @@ write_ArcSWAT <- function(i_tbl, var_tbl, loc_data, write_pth, file_name) {
     write.csv(x = loc_data, file = write_pth%//%var_name%//%
               var_name%_%"loc.txt", quote = FALSE, row.names = FALSE)
 
+    n <- nrow(var_tbl)
+    log_file <- c("time period =  "%&%as.Date(var_tbl$year[1]%-%var_tbl$mon[1]%-%
+                                              var_tbl$day[1])%&&%"to"%&&%
+                                      as.Date(var_tbl$year[n]%-%var_tbl$mon[n]%-%
+                                              var_tbl$day[n]),
+                  "time step =    "%&%ifelse(exists("t_diff"), t_diff%&&%"min",
+                                             "1 day"),
+                  "number years = "%&%(var_tbl$year[n] - var_tbl$year[1] + 1),
+                  "NA values :    ")
+
+
+    writeLines(log_file, con = write_pth%//%var_name%//%var_name%_%"info.log")
+
+
+
     var_tbl %<>%
       dplyr::select(-matches("year"), -matches("mon"), -matches("day"),
              -matches("hour"), -matches("min")) %>%
@@ -180,12 +197,16 @@ write_ArcSWAT <- function(i_tbl, var_tbl, loc_data, write_pth, file_name) {
       mutate_all(funs(ifelse(is.na(.), -99.0, .))) %>%
       mutate_all(funs(round(.,digits = 2)))
 
-    write_sub_i <- function(var_tbl, t_stamp, write_pth, var_name){
-      write.table(t_stamp, file = write_pth%//%var_name%//%names(var_tbl)%.%
+    write_sub_i <- function(var_i, t_stamp, write_pth, var_name){
+      write.table(t_stamp, file = write_pth%//%var_name%//%names(var_i)%.%
                   "txt", quote = FALSE, row.names = FALSE, col.names = FALSE)
-      write.table(var_tbl, file = write_pth%//%var_name%//%names(var_tbl)%.%
+      write.table(var_i, file = write_pth%//%var_name%//%names(var_i)%.%
                   "txt", quote = FALSE, row.names = FALSE, col.names = FALSE,
                   append = TRUE)
+      write.table("  "%&%sum(var_i == -99.0)%&&%"NA values in"%&&%names(var_i),
+                  file = write_pth%//%var_name%//%var_name%_%"info.log",
+                  append = TRUE, col.names = FALSE, row.names = FALSE,
+                  quote = FALSE)
     }
 
     for(i_sub in colnames(var_tbl)){
@@ -196,11 +217,6 @@ write_ArcSWAT <- function(i_tbl, var_tbl, loc_data, write_pth, file_name) {
     stop("Files for variable"%&&%var_name%&&%"already exists in the given path!")
   }
 }
-
-
-
-
-
 
 is_subdaily <- function(var_tbl) {
   subdaily <- FALSE
