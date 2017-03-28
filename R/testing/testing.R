@@ -10,6 +10,13 @@ basin_shp <- readOGR(paste(bnd_dir,bnd_file_name, sep = ""),
 
 crs_nc <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
+nc_test <- aggregate_ncdf(ncdf_pth = ncdf_file,
+                          basin_shp = basin_shp,
+                          ncdf_crs = crs_nc,
+                          shp_index = "Subbasin",
+                          var_lbl = "pr")
+
+
 ncdf_folder <- "G:/UnLoadC3"
 ncdf_files  <- list.files(ncdf_folder, full.names = FALSE)
 

@@ -67,10 +67,10 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
 
   # Assign extent of point layer but adding cell extent
   ext <- extent(lonlat_proj)
-  ext@xmin <- ext@xmin - cell_size[2]/2
-  ext@xmax <- ext@xmax + cell_size[2]/2
-  ext@ymin <- ext@ymin - cell_size[1]/2
-  ext@ymax <- ext@ymax + cell_size[1]/2 # be careful here maybe other way round!!!
+  ext@xmin <- ext@xmin - cell_size[1]/2
+  ext@xmax <- ext@xmax + cell_size[1]/2
+  ext@ymin <- ext@ymin - cell_size[2]/2
+  ext@ymax <- ext@ymax + cell_size[2]/2 # be careful here maybe other way round!!!
 
   # Create raster with cell indices as values and convert to spatial polygon
   assign_crs <- function(sp_obj, crs_new) {
@@ -94,7 +94,8 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
   int_poly <- intersect(idx_poly, basin_shp)
 
   # Extract data.frame with indices, subbasin number and pixel areas
-  idx_area <- data.frame(area = sapply(int_poly@polygons, FUN=function(x) {slot(x, 'area')})) %>%
+  idx_area <- data.frame(area = sapply(int_poly@polygons,
+                                       FUN=function(x) {slot(x, 'area')})) %>%
     cbind(int_poly@data) %>%
     mutate(area_fract = area/(cell_size[1]*cell_size[2])) %>%
     select(matches(shp_index), layer, area_fract) %>%
@@ -128,10 +129,5 @@ aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
                min  = minute(t_0 + time),
                .before = 1)
 
-  ws <- ls()
-  ws <- ws[ws != "idx_area"]
-  rm(list = ws)
-  removeTmpFiles(h=0)
-  gc()
   return(idx_area)
 }
