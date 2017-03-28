@@ -119,4 +119,5 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
   sub_aggr <- lapply(bil_lst, aggregate_i, idx_area, header, bin_pth, shp_index)
   sub_aggr <- bind_rows(sub_aggr)
 
+  return(sub_aggr[1:(nrow(sub_aggr) - 1),])
 }
