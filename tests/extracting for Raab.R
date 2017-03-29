@@ -1,54 +1,29 @@
-# Load basin boundary shape file for 4 subbasins ---------------------------
-bnd_dir <- "D:/UnLoadC3/00_RB_SWAT/raab_sb4/Watershed/Shapes/"
-bnd_file_name = "subs1.shp"
-basin_4 <- readOGR(paste(bnd_dir,bnd_file_name, sep = ""),
-                     layer = "subs1")
+library(rgdal)
+library(pasta)
+library(raster)
 
-bin_pth <- "F:/mirror_H/ETP_AT/ETP_AT_Exe/input"
+sub_size <- c(4,30,54)
+variable <- data.frame(var = c("pcp", "tmp"),
+                       pth = c("RR",  "T2M"))
 
+clim_inca <- list()
 
-obs_4 <- list()
-t_T <- system.time({
-   obs_4$tmp <- aggregate_INCAbin(bin_pth = bin_pth%//%"T2M",
-                                  basin_shp = basin_4, bin_crs = crs(basin_4),
-                                  bin_ext = c(99500, 700500, 249500, 600500),
-                                  shp_index = "Subbasin")
+for(i_sub in sub_size){
+  basin_pth <- "D:/UnLoadC3/00_RB_SWAT/raab_sb"%&%
+               i_sub%&%
+               "/Watershed/Shapes/subs1.shp"
+  basin_shp <- readOGR(basin_pth, layer = "subs1")
 
-})
-t_T[3]/60
+  clim_inca[["sb"%&%i_sub]] <- list()
 
-t_P <- system.time({
-  obs_4$pcp <- aggregate_INCAbin(bin_pth = bin_pth%//%"RR",
-                                 basin_shp = basin_4, bin_crs = crs(basin_4),
-                                 bin_ext = c(99500, 700500, 249500, 600500),
-                                 shp_index = "Subbasin")
+  for(i_var in nrow(variable)){
+    bin_pth <- "F:/mirror_H/ETP_AT/ETP_AT_Exe/input"%//%variable$pth[i_var]
+    clim_inca[["sb"%&%i_sub]][[variable$var[i_var]]] <-
+      aggregate_INCAbin(bin_pth = bin_pth%//%"RR",
+                        basin_shp = basin_shp, bin_crs = crs(basin_30),
+                        bin_ext = c(99500, 700500, 249500, 600500),
+                        shp_index = "Subbasin")
+  }
+}
 
-})
-t_P[3]/60
-
-
-# Load basin boundary shape file for 30 subbasins --------------------------
-bnd_dir <- "D:/UnLoadC3/00_RB_SWAT/raab_30/Watershed/Shapes/"
-bnd_file_name = "subs1.shp"
-basin_30 <- readOGR(paste(bnd_dir,bnd_file_name, sep = ""),
-                   layer = "subs1")
-
-
-obs_30 <- list()
-t_T <- system.time({
-  obs_30$tmp <- aggregate_INCAbin(bin_pth = bin_pth%//%"T2M",
-                                 basin_shp = basin_30, bin_crs = crs(basin_30),
-                                 bin_ext = c(99500, 700500, 249500, 600500),
-                                 shp_index = "Subbasin")
-
-})
-t_T[3]/60
-
-t_P <- system.time({
-  obs_30$pcp <- aggregate_INCAbin(bin_pth = bin_pth%//%"RR",
-                                 basin_shp = basin_30, bin_crs = crs(basin_30),
-                                 bin_ext = c(99500, 700500, 249500, 600500),
-                                 shp_index = "Subbasin")
-
-})
-t_P[3]/60
+save(clim_inca, file =  "D:/UnLoadC3/00_RB_SWAT/clim_inca")
