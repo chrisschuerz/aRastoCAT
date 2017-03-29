@@ -4,8 +4,8 @@
 \alias{aggregate_time}
 \title{Aggregate time series derived from climate raster aggregation}
 \usage{
-aggregate_time(ts_tbl, time_int = "day", aggr_fun = mean,
-  drop_col = FALSE)
+aggregate_time(ts_tbl, time_int = "day", drop_col = FALSE,
+  aggr_fun = mean, ...)
 }
 \arguments{
 \item{ts_tbl}{tibble with timeseries data for basin subunits}
@@ -13,11 +13,11 @@ aggregate_time(ts_tbl, time_int = "day", aggr_fun = mean,
 \item{time_int}{character time interval to aggregate, either 'year',
 'mon', 'day', 'hour', or 'min'}
 
-\item{aggr_fun}{Aggregation function to apply}
-
 \item{drop_col}{logical to set whether unused time columns are dropped
 (TRUE) or kept in the table (FALSE). If FALSE unused time columns
 values are set to zero.}
+
+\item{aggr_fun}{Aggregation function to apply}
 }
 \value{
 Returns an aggregated time series tibble

@@ -11,17 +11,19 @@
 #' @return Returns an aggregated time series tibble
 #' @export
 
-aggregate_time <- function(ts_tbl, time_int = "day", aggr_fun = mean,
-                           drop_col = FALSE) {
+aggregate_time <- function(ts_tbl, time_int = "day", drop_col = FALSE,
+                           aggr_fun = mean, ...) {
   time_step <- c("year", "mon", "day", "hour", "min")
   time_keep <- time_step[1:which(time_step == time_int)]
   time_drop <- time_step[!(time_step %in% time_keep)]
   time_grp  <- time_keep %>%
     lapply(., as.symbol)
 
+  aggr_wrap <- function(x){ aggr_fun(x, ...) }
+
   ts_tbl %<>%
     group_by_(.dots = time_grp) %>%
-    summarise_all(funs(aggr_fun)) %>%
+    summarise_all(funs(aggr_wrap)) %>%
     ungroup()
 
   if(drop_col){
