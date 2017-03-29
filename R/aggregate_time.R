@@ -3,10 +3,12 @@
 #' @param ts_tbl tibble with timeseries data for basin subunits
 #' @param time_int character time interval to aggregate, either 'year',
 #'   'mon', 'day', 'hour', or 'min'
-#' @param aggr_fun Aggregation function to apply
 #' @param drop_col logical to set whether unused time columns are dropped
 #'   (TRUE) or kept in the table (FALSE). If FALSE unused time columns
 #'   values are set to zero.
+#' @param aggr_fun Aggregation function to apply
+#' @param ... further function arguments of aggr_fun
+#' @import dplyr
 #'
 #' @return Returns an aggregated time series tibble
 #' @export

@@ -18,6 +18,8 @@ aggregate_time(ts_tbl, time_int = "day", drop_col = FALSE,
 values are set to zero.}
 
 \item{aggr_fun}{Aggregation function to apply}
+
+\item{...}{further function arguments of aggr_fun}
 }
 \value{
 Returns an aggregated time series tibble
