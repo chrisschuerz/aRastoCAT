@@ -86,7 +86,8 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
       .[2] %>%
       paste("00:00") %>%
       ymd_hm()
-    t_step <- seq(24*3600/header$NBLOCKS, 24*3600, length.out = header$NBLOCKS)
+    t_step <- seq(0, 24*3600(1 - 1/header$NBLOCKS),
+                  length.out = header$NBLOCKS)
 
     bil_i <- readBin(con = bin_pth%//%bin_i,
                      what = "numeric",
@@ -123,5 +124,5 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
                      shp_index, .pb = pb)
   sub_aggr <- bind_rows(sub_aggr)
 
-  return(sub_aggr[1:(nrow(sub_aggr) - 1),])
+  return(sub_aggr)
 }
