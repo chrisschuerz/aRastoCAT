@@ -11,13 +11,14 @@
 #'
 #' @importFrom pasta %_% %//%
 #' @importFrom dplyr mutate mutate_at select matches starts_with left_join
-#'   vars funs group_by ungroup summarise_all
+#'   vars funs group_by ungroup summarise_all progress_estimated
 #' @importFrom tibble as_tibble add_column
 #' @importFrom lubridate year month day hour minute
 #' @importFrom magrittr %>% set_colnames subtract
 #' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
-#' @importFrom raster raster rasterToPoints extent crs intersect
+#' @importFrom raster raster rasterToPoints intersect extent<- crs<-
 #'   removeTmpFiles
+#' @importMethodsFrom raster crs extent
 #' @importFrom sp SpatialPoints SpatialPointsDataFrame spTransform
 #'   SpatialPolygonsDataFrame
 #'
@@ -71,14 +72,15 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
                                        FUN = function(x) {slot(x, 'area')})) %>%
     cbind(int_poly@data) %>%
     mutate(area_fract = area/(header$XDIM * header$YDIM)) %>%
-    dplyr::select(matches(shp_index), layer, area_fract) %>%
+    select(matches(shp_index), layer, area_fract) %>%
     set_colnames(c("basin", "idx", "fraction")) %>%
     mutate(idx = as.integer(idx)) %>%
     group_by(basin, idx) %>%
     summarise_all(funs(sum)) %>%
     ungroup()
 
-  aggregate_i <- function(bin_i, idx_area, header, bin_pth, shp_index){
+  aggregate_i <- function(bin_i, idx_area, header, bin_pth, shp_index, .pb){
+    .pb$tick()$print()
     t_0 <- strsplit(bin_i, "\\_|\\.") %>%
       unlist() %>%
       .[2] %>%
@@ -116,7 +118,9 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
     return(aggr_i)
   }
 
-  sub_aggr <- lapply(bil_lst, aggregate_i, idx_area, header, bin_pth, shp_index)
+  pb <- progress_estimated(length(bil_lst))
+  sub_aggr <- lapply(bil_lst, aggregate_i, idx_area, header, bin_pth,
+                     shp_index, .pb = pb)
   sub_aggr <- bind_rows(sub_aggr)
 
   return(sub_aggr[1:(nrow(sub_aggr) - 1),])
