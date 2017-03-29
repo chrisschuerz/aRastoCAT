@@ -86,7 +86,7 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
       .[2] %>%
       paste("00:00") %>%
       ymd_hm()
-    t_step <- seq(0, 24*3600(1 - 1/header$NBLOCKS),
+    t_step <- seq(0, 24*3600 * (1 - 1/header$NBLOCKS),
                   length.out = header$NBLOCKS)
 
     bil_i <- readBin(con = bin_pth%//%bin_i,

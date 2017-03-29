@@ -8,7 +8,8 @@
 #'   values are set to zero.
 #' @param aggr_fun Aggregation function to apply
 #' @param ... further function arguments of aggr_fun
-#' @import dplyr
+#' @importFrom  dplyr group_by_ ungroup summarise_all select mutate_at vars
+#'   funs one_of
 #'
 #' @return Returns an aggregated time series tibble
 #' @export
