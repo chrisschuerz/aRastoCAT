@@ -61,8 +61,10 @@ save(clim_inca, file =  "D:/UnLoadC3/00_RB_SWAT/clim_inca.RData")
 
 
 # ZAMG Climate change scenarios --------------------------------------------
+sub_size <- c(4,30,54)
+
 nc_full_pth <- "I:/UnLoadC3"
-nc_full <- list.files(path = nc_full_pth, full.names = TRUE)
+nc_full <- list.files(path = nc_full_pth, full.names = FALSE)
 nc_pth  <- "D:/UnLoadC3/01_Datengrundlage/06_WEATHER/ncdf_2071_2100"
 crs_nc <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
@@ -73,8 +75,8 @@ nc_ff <- nc_full %>%
   .[grepl("2071-2100", .)] %>% 
   .[grepl("pr|tasmin|tasmax", .)]
 
-dir.create(nc_pth)
-sapply(nc_ff, file.copy, nc_pth)
+#dir.create(nc_pth)
+# sapply(nc_full_pth%//%nc_ff, file.copy, nc_pth) #Already copied
 
 # Extract ncdf data for the different spatial aggregations of the Raab
 # catchment.
@@ -91,11 +93,11 @@ for(i_sub in sub_size){
     nc_i_meta <- get_ncdfmeta_from_filename(i_nc)
     run_i <- nc_i_meta$gcm %_% nc_i_meta$rcm %_% nc_i_meta$rcp
     
-    if(is.null(clim_2071_2100[["sb"%&%i_sub]][[run_i]]){
-      is.null(clim_2071_2100[["sb"%&%i_sub]][[run_i]] <- list()
+    if(is.null(clim_2071_2100[["sb"%&%i_sub]][[run_i]])){
+      clim_2071_2100[["sb"%&%i_sub]][[run_i]] <- list()
     }
 
-    clim_2071_2100[["sb"%&%i_sub]][[run_i]][nc_i_meta$variable] <- 1
+    clim_2071_2100[["sb"%&%i_sub]][[run_i]][nc_i_meta$variable] <- 
     aggregate_ncdf(ncdf_pth = nc_pth%//%i_nc, 
                    basin_shp = basin_shp, 
                    ncdf_crs = crs_nc, 
@@ -105,15 +107,3 @@ for(i_sub in sub_size){
   }
   
 }
-
-nc_str <- "pr_bc_EUR-11_ICHEC-EC-EARTH_rcp85_r12i1p1_SMHI-RCA4_v1_day_AT_EZG_2071-2100"
-
-nc_i_meta <- nc_str %>% 
-  strsplit(., "_") %>% 
-  unlist() %>% 
-  .[c(1,4,7,5, 12)] %>% 
-  t() %>% 
-  as_tibble() %>% 
-  set_colnames(c("variable", "gcm", "rcm", "rcp", "period")) %>% 
-  mutate(gcm = trim_by_regex(gcm, "-", 2, TRUE),
-         rcm = trim_by_regex(rcm, "-", 1))
