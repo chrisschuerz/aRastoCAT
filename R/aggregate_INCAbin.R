@@ -120,9 +120,11 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
   }
 
   pb <- progress_estimated(length(bil_lst))
+  pb$begin()$print()
   sub_aggr <- lapply(bil_lst, aggregate_i, idx_area, header, bin_pth,
                      shp_index, .pb = pb)
   sub_aggr <- bind_rows(sub_aggr)
+  pb$stop()$print()
 
   return(sub_aggr)
 }

@@ -10,23 +10,23 @@ library(dplyr)
 # Functions -----------------------------------------------------------
 trim_by_regex <- function(string, pattern, n_pattern, reverse = FALSE) {
   nchar_str <- nchar(string)
-  pat_pos <- string %>% 
-    gregexpr(pattern,.) %>% 
+  pat_pos <- string %>%
+    gregexpr(pattern,.) %>%
     unlist()
-  init_str <- ifelse(reverse, 
-                     pat_pos[length(pat_pos) + 1 - n_pattern] + 1, 
+  init_str <- ifelse(reverse,
+                     pat_pos[length(pat_pos) + 1 - n_pattern] + 1,
                      pat_pos[n_pattern] + 1)
   substr(string, init_str, nchar_str)
 }
 
 get_ncdfmeta_from_filename <- function(file_name) {
-  file_name %>% 
-    strsplit(., "_") %>% 
-    unlist() %>% 
-    .[c(1,4,7,5, 12)] %>% 
-    t() %>% 
-    as_tibble() %>% 
-    set_colnames(c("variable", "gcm", "rcm", "rcp", "period")) %>% 
+  file_name %>%
+    strsplit(., "_") %>%
+    unlist() %>%
+    .[c(1,4,7,5, 12)] %>%
+    t() %>%
+    as_tibble() %>%
+    set_colnames(c("variable", "gcm", "rcm", "rcp", "period")) %>%
     mutate(gcm = trim_by_regex(gcm, "-", 2, TRUE),
            rcm = trim_by_regex(rcm, "-", 1))
 }
@@ -71,8 +71,8 @@ crs_nc <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 # For Unload select only climate projections for far future (2071 - 2100)
 # and copy them on local hard drive
-nc_ff <- nc_full %>% 
-  .[grepl("2071-2100", .)] %>% 
+nc_ff <- nc_full %>%
+  .[grepl("2071-2100", .)] %>%
   .[grepl("pr|tasmin|tasmax", .)]
 
 #dir.create(nc_pth)
@@ -82,28 +82,36 @@ nc_ff <- nc_full %>%
 # catchment.
 
 clim_2071_2100 <- list()
+pb <- progress_estimated(length(sub_size)*length(nc_ff))
 for(i_sub in sub_size){
   basin_pth <- "D:/UnLoadC3/00_RB_SWAT/raab_sb"%&%
                i_sub%//%
                "Watershed/Shapes/subs1.shp"
   basin_shp <- readOGR(basin_pth, layer = "subs1")
-  
+
   clim_2071_2100[["sb"%&%i_sub]] <- list()
+  pb$print()
   for (i_nc in nc_ff){
     nc_i_meta <- get_ncdfmeta_from_filename(i_nc)
     run_i <- nc_i_meta$gcm %_% nc_i_meta$rcm %_% nc_i_meta$rcp
-    
+
     if(is.null(clim_2071_2100[["sb"%&%i_sub]][[run_i]])){
       clim_2071_2100[["sb"%&%i_sub]][[run_i]] <- list()
     }
 
-    clim_2071_2100[["sb"%&%i_sub]][[run_i]][nc_i_meta$variable] <- 
-    aggregate_ncdf(ncdf_pth = nc_pth%//%i_nc, 
-                   basin_shp = basin_shp, 
-                   ncdf_crs = crs_nc, 
-                   shp_index = "Subbasin", 
+    clim_2071_2100[["sb"%&%i_sub]][[run_i]][[nc_i_meta$variable]] <-
+    aggregate_ncdf(ncdf_pth = nc_pth%//%i_nc,
+                   basin_shp = basin_shp,
+                   ncdf_crs = crs_nc,
+                   shp_index = "Subbasin",
                    var_lbl = nc_i_meta$variable)
-    
+    pb$tick()$print()
   }
-  
+
 }
+save(clim_2071_2100, file = "D:/UnLoadC3/00_RB_SWAT/clim_2071_2100.RData")
+pb$stop()
+
+
+
+
