@@ -4,6 +4,8 @@ library(pasta)
 library(raster)
 library(aRastoCAT)
 library(magrittr)
+library(tibble)
+library(dplyr)
 
 # Functions -----------------------------------------------------------
 trim_by_regex <- function(string, pattern, n_pattern, reverse = FALSE) {
@@ -15,6 +17,18 @@ trim_by_regex <- function(string, pattern, n_pattern, reverse = FALSE) {
                      pat_pos[length(pat_pos) + 1 - n_pattern] + 1, 
                      pat_pos[n_pattern] + 1)
   substr(string, init_str, nchar_str)
+}
+
+get_ncdfmeta_from_filename <- function(file_name) {
+  file_name %>% 
+    strsplit(., "_") %>% 
+    unlist() %>% 
+    .[c(1,4,7,5, 12)] %>% 
+    t() %>% 
+    as_tibble() %>% 
+    set_colnames(c("variable", "gcm", "rcm", "rcp", "period")) %>% 
+    mutate(gcm = trim_by_regex(gcm, "-", 2, TRUE),
+           rcm = trim_by_regex(rcm, "-", 1))
 }
 
 
@@ -50,6 +64,7 @@ save(clim_inca, file =  "D:/UnLoadC3/00_RB_SWAT/clim_inca.RData")
 nc_full_pth <- "I:/UnLoadC3"
 nc_full <- list.files(path = nc_full_pth, full.names = TRUE)
 nc_pth  <- "D:/UnLoadC3/01_Datengrundlage/06_WEATHER/ncdf_2071_2100"
+crs_nc <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 
 # For Unload select only climate projections for far future (2071 - 2100)
@@ -64,3 +79,41 @@ sapply(nc_ff, file.copy, nc_pth)
 # Extract ncdf data for the different spatial aggregations of the Raab
 # catchment.
 
+clim_2071_2100 <- list()
+for(i_sub in sub_size){
+  basin_pth <- "D:/UnLoadC3/00_RB_SWAT/raab_sb"%&%
+               i_sub%//%
+               "Watershed/Shapes/subs1.shp"
+  basin_shp <- readOGR(basin_pth, layer = "subs1")
+  
+  clim_2071_2100[["sb"%&%i_sub]] <- list()
+  for (i_nc in nc_ff){
+    nc_i_meta <- get_ncdfmeta_from_filename(i_nc)
+    run_i <- nc_i_meta$gcm %_% nc_i_meta$rcm %_% nc_i_meta$rcp
+    
+    if(is.null(clim_2071_2100[["sb"%&%i_sub]][[run_i]]){
+      is.null(clim_2071_2100[["sb"%&%i_sub]][[run_i]] <- list()
+    }
+
+    clim_2071_2100[["sb"%&%i_sub]][[run_i]][nc_i_meta$variable] <- 1
+    aggregate_ncdf(ncdf_pth = nc_pth%//%i_nc, 
+                   basin_shp = basin_shp, 
+                   ncdf_crs = crs_nc, 
+                   shp_index = "Subbasin", 
+                   var_lbl = nc_i_meta$variable)
+    
+  }
+  
+}
+
+nc_str <- "pr_bc_EUR-11_ICHEC-EC-EARTH_rcp85_r12i1p1_SMHI-RCA4_v1_day_AT_EZG_2071-2100"
+
+nc_i_meta <- nc_str %>% 
+  strsplit(., "_") %>% 
+  unlist() %>% 
+  .[c(1,4,7,5, 12)] %>% 
+  t() %>% 
+  as_tibble() %>% 
+  set_colnames(c("variable", "gcm", "rcm", "rcp", "period")) %>% 
+  mutate(gcm = trim_by_regex(gcm, "-", 2, TRUE),
+         rcm = trim_by_regex(rcm, "-", 1))
