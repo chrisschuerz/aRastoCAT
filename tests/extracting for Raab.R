@@ -1,8 +1,9 @@
 library(rgdal)
 library(pasta)
 library(raster)
+library(aRastoCAT)
 
-sub_size <- c(30,54,4)
+sub_size <- c(4,30,54)
 variable <- data.frame(var = c("pcp", "tmp"),
                        pth = c("RR",  "T2M"))
 
@@ -16,7 +17,7 @@ for(i_sub in sub_size){
 
   clim_inca[["sb"%&%i_sub]] <- list()
 
-  for(i_var in nrow(variable)){
+  for(i_var in 1:nrow(variable)){
     bin_pth <- "F:/mirror_H/ETP_AT/ETP_AT_Exe/input"%//%variable$pth[i_var]
     clim_inca[["sb"%&%i_sub]][[variable$var[i_var]]] <-
       aggregate_INCAbin(bin_pth = bin_pth,
@@ -26,6 +27,6 @@ for(i_sub in sub_size){
   }
 }
 
-save(clim_inca, file =  "D:/UnLoadC3/00_RB_SWAT/clim_inca")
+save(clim_inca, file =  "D:/UnLoadC3/00_RB_SWAT/clim_inca.RData")
 
 
