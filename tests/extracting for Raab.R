@@ -34,8 +34,8 @@ get_ncdfmeta_from_filename <- function(file_name) {
 
 # INCA data for model calibration -------------------------------------
 sub_size <- c(4,30,54)
-variable <- data.frame(var = c("pcp", "tmp"),
-                       pth = c("RR",  "T2M"))
+variable <- tibble(var = c("pcp", "tmp"),
+                   pth = c("RR",  "T2M"))
 
 clim_inca <- list()
 
@@ -59,6 +59,32 @@ for(i_sub in sub_size){
 
 save(clim_inca, file =  "D:/UnLoadC3/00_RB_SWAT/clim_inca.RData")
 
+
+# Write ArcSWAT inputs from INCA files --------------------------------
+# Aggregate pcp files
+clim_inca_aggr <- clim_inca
+for(i_sub in sub_size){
+  clim_inca_aggr[["sb"%&%i_sub]]$pcp %<>%
+    aggregate_time(., time_int = "day",drop_col = TRUE, aggr_fun = sum)
+}
+
+write_pth <- "D:/UnLoadC3/00_RB_SWAT/climate/observation"
+
+for (i_sub in sub_size){
+  basin_pth <- "D:/UnLoadC3/00_RB_SWAT/raab_sb"%&%
+    i_sub%//%
+    "Watershed/Shapes/subs1.shp"
+  basin_shp <- readOGR(basin_pth, layer = "subs1")
+
+  sub_name <- "sb"%&%i_sub
+
+  dir.create(write_pth%//%sub_name)
+  write_SWATweather(pcp_tbl = clim_inca_aggr[["sb"%&%i_sub]]$pcp,
+                    tmp_tbl = clim_inca_aggr[["sb"%&%i_sub]]$tmp,
+                    basin_shp = basin_shp,
+                    write_pth = write_pth%//%sub_name,
+                    out_type = "ArcSWAT")
+}
 
 # ZAMG Climate change scenarios --------------------------------------------
 sub_size <- c(4,30,54)
