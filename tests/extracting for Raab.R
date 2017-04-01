@@ -97,12 +97,14 @@ crs_nc <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 # For Unload select only climate projections for far future (2071 - 2100)
 # and copy them on local hard drive
-nc_ff <- nc_full %>%
-  .[grepl("2071-2100", .)] %>%
-  .[grepl("pr|tasmin|tasmax", .)]
+# nc_ff <- nc_full %>%
+#   .[grepl("2071-2100", .)] %>%
+#   .[grepl("pr|tas", .)]
 
+nc_ff <- list.files(nc_pth)%>%
+  .[grepl("pr|tasmin|tasmax", .)]
 #dir.create(nc_pth)
-# sapply(nc_full_pth%//%nc_ff, file.copy, nc_pth) #Already copied
+#sapply(nc_full_pth%//%nc_ff, file.copy, nc_pth) #Already copied
 
 # Extract ncdf data for the different spatial aggregations of the Raab
 # catchment.
