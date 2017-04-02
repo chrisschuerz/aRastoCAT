@@ -1,3 +1,5 @@
+#' Aggregate Time
+#' 
 #' Aggregate time series derived from climate raster aggregation
 #'
 #' @param ts_tbl tibble with timeseries data for basin subunits
