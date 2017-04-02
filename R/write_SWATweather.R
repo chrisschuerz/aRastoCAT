@@ -56,12 +56,14 @@ write_SWATweather <- function(pcp_tbl = NULL, tmp_tbl = NULL,
     stop("EITHER tmin/tmax OR subdaily temperature time series must be provided.")
   }
 
-  if(!is.null(tmp_tbl) & is_subdaily(tmp_tbl)){
-    tmn_tbl <- aggregate_time(tmp_tbl, time_int = "day", aggr_fun = min)
-    tmx_tbl <- aggregate_time(tmp_tbl, time_int = "day", aggr_fun = max)
-    rm(tmp_tbl)
-  } else {
-    stop("For calculation of tmin/tmax subdaily timeseries of tmp is required.")
+  if(!is.null(tmp_tbl)){
+    if(is_subdaily(tmp_tbl)){
+      tmn_tbl <- aggregate_time(tmp_tbl, time_int = "day", aggr_fun = min)
+      tmx_tbl <- aggregate_time(tmp_tbl, time_int = "day", aggr_fun = max)
+      rm(tmp_tbl)
+    } else {
+      stop("For calculation of tmin/tmax subdaily timeseries of tmp is required.")
+    }
   }
 
   if(!is.null(tmn_tbl) & !is.null(tmx_tbl)){

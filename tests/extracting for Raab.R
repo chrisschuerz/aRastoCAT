@@ -140,6 +140,28 @@ for(i_sub in sub_size){
 save(clim_2071_2100, file = "D:/UnLoadC3/00_RB_SWAT/clim_2071_2100.RData")
 pb$stop()
 
+# Write txtIO weather files from ZAMG ncdf projections ---------------------
+write_pth <- "D:/UnLoadC3/00_RB_SWAT/climate/projection"
+proj_name <- names(clim_2071_2100$sb4)
+
+for (i_sub in sub_size){
+  basin_pth <- "D:/UnLoadC3/00_RB_SWAT/raab_sb"%&%
+    i_sub%//%
+    "Watershed/Shapes/subs1.shp"
+  basin_shp <- readOGR(basin_pth, layer = "subs1")
+
+  for (i_proj in proj_name){
+    dir.create(write_pth%//%"sb"%&%i_sub%//%i_proj, recursive = TRUE)
+    clim <- clim_2071_2100[["sb"%&%i_sub]][[i_proj]]
+
+    write_SWATweather(pcp_tbl = clim$pr,
+                      tmx_tbl = clim$tasmax,
+                      tmn_tbl = clim$tasmin,
+                      basin_shp = basin_shp,
+                      write_pth = write_pth%//%"sb"%&%i_sub%//%i_proj,
+                      out_type = "txtIO")
+  }
+}
 
 
 
