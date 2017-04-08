@@ -2,7 +2,7 @@
 % Please edit documentation in R/aggregate_time.R
 \name{aggregate_time}
 \alias{aggregate_time}
-\title{Aggregate time series derived from climate raster aggregation}
+\title{Aggregate Time}
 \usage{
 aggregate_time(ts_tbl, time_int = "day", drop_col = FALSE,
   aggr_fun = mean, ...)

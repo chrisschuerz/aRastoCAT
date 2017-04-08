@@ -1,5 +1,6 @@
 library(rgdal)
 library(pasta)
+library(ncdf4)
 
 ncdf_file <- "C:/pr_bc_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_day_AT_EZG_1971-2000.nc"
 # Load basin boundary shape file --------------------------------------
