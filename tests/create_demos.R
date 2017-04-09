@@ -36,13 +36,13 @@ lat_def  <- ncvar_def(name = "lat", units = "degrees_north", dim = list(londim,l
 time_def <- ncvar_def(name = "time_bnds", units = "days", dim = list(timedim),
                     missval = -999, longname = "time", prec = "double")
 
-demo_nc <- nc_create("C:/demo_nc.nc", list(pr_def, lon_def, lat_def))
+demo_nc <- nc_create("C:/demo_nc.nc", list(pr_def, lon_def, lat_def, time_def))
 ncvar_put(demo_nc,pr_def,pr_1)
 ncvar_put(demo_nc, lon_def, lon_1)
 ncvar_put(demo_nc, lat_def, lat_1)
 ncvar_put(demo_nc, time_def, t_1)
 
-d_nc <- nc_open("C:/demo1_nc.nc")
+d_nc <- nc_open("C:/demo_nc.nc")
 nc_close(d_nc)
 
 pr_d <- ncvar_get(d_nc, "pr")
