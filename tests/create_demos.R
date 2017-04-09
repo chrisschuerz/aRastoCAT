@@ -28,21 +28,24 @@ latdim <- ncdim_def("y","degrees_north",as.double(lat_1[1,]))
 timedim <- ncdim_def("time",t_un$units,as.double(t_1))
 
 pr_def   <- ncvar_def(name = "pr", units = "mm", dim = list(londim,latdim,timedim),
-                    missval = -999, longname = "precipitation", prec = "float")
+                      missval = -999, longname = "precipitation", prec = "float")
 lon_def  <- ncvar_def(name = "lon", units = "degrees_east", dim = list(londim,latdim),
-                    missval = -999, longname = "longitude coordinate", prec = "double")
+                      missval = -999, longname = "longitude coordinate", prec = "double")
 lat_def  <- ncvar_def(name = "lat", units = "degrees_north", dim = list(londim,latdim),
-                    missval = -999, longname = "latitude coordinate", prec = "double")
+                      missval = -999, longname = "latitude coordinate", prec = "double")
 time_def <- ncvar_def(name = "time_bnds", units = "days", dim = list(timedim),
-                    missval = -999, longname = "time", prec = "double")
+                      missval = -999, longname = "time", prec = "double")
 
 demo_nc <- nc_create("C:/demo_nc.nc", list(pr_def, lon_def, lat_def, time_def))
 ncvar_put(demo_nc,pr_def,pr_1)
 ncvar_put(demo_nc, lon_def, lon_1)
 ncvar_put(demo_nc, lat_def, lat_1)
 ncvar_put(demo_nc, time_def, t_1)
+nc_close(demo_nc)
 
 d_nc <- nc_open("C:/demo_nc.nc")
-nc_close(d_nc)
 
 pr_d <- ncvar_get(d_nc, "pr")
+lon_d <- ncvar_get(d_nc, "lon")
+lat_d <- ncvar_get(d_nc, "lat")
+t_d <- ncvar_get(d_nc, "time")
