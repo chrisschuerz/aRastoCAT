@@ -6,12 +6,12 @@ ncdf_file <- "C:/pr_bc_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCL
 # Load basin boundary shape file --------------------------------------
 bnd_dir <- "D:/UnLoadC3/00_RB_SWAT/raab_sb4/Watershed/Shapes/"
 bnd_file_name = "subs1.shp"
-basin_shp <- readOGR(paste(bnd_dir,bnd_file_name, sep = ""),
+basin_shp <- readOGR(,
                    layer = "subs1")
 
 crs_nc <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
-nc_test <- aggregate_ncdf(ncdf_pth = "C:/demo_nc.nc",
+nc_test <- aggregate_ncdf(ncdf_pth = ncdf_pth,
                           basin_shp = basin_shp,
                           ncdf_crs = crs_nc,
                           shp_index = "Subbasin",
