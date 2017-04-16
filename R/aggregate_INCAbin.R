@@ -40,7 +40,7 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
     .[,2] %>%
     as.numeric() %>%
     t() %>%
-    as.data.frame() %>%
+    as_tibble() %>%
     set_colnames(hdr_col)
 
 # Create raster with cell indices as values and convert to spatial polygon
@@ -52,8 +52,6 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
     extent(sp_obj) <- ext_new
     return(sp_obj)
   }
-
-
 
   idx_poly <- matrix(data = 1:(header$NROWS * header$NCOLS),
                      nrow = header$NCOLS) %>%
