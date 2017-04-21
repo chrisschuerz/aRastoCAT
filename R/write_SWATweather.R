@@ -138,8 +138,11 @@ write_txtIOtable <- function(i_tbl, var_tbl, write_pth, file_name, fmt){
                                    paste0(.,sprintf("%02d",var_tbl$hour)%&&%
                                             sprintf("%02d",var_tbl$min)),
                             .before = 1) %>%
-      select(-matches("year"), -matches("mon"), -matches("day"),
-             -matches("hour"), -matches("min"))
+      select(-matches("year")) %>%
+      select(-matches("mon")) %>%
+      select(-matches("day")) %>%
+      select(-matches("hour")) %>%
+      select(-matches("min"))
   } else {
     var_tbl %<>%
       add_column(date = as.Date(var_tbl$year%-%
@@ -147,8 +150,11 @@ write_txtIOtable <- function(i_tbl, var_tbl, write_pth, file_name, fmt){
                                            var_tbl$day) %>%
                                    format("%Y%j"),
                             .before = 1) %>%
-      select(-matches("year"), -matches("mon"), -matches("day"),
-             -matches("hour"), -matches("min"))
+      select(-matches("year")) %>%
+      select(-matches("mon")) %>%
+      select(-matches("day")) %>%
+      select(-matches("hour")) %>%
+      select(-matches("min"))
   }
   var_tbl %>%
     mutate_at(.cols = 2:ncol(.), funs(ifelse(is.na(.), -99.0, .))) %>%
@@ -191,8 +197,11 @@ write_ArcSWAT <- function(i_tbl, var_tbl, loc_data, write_pth, file_name) {
     writeLines(log_file, con = write_pth%//%var_name%//%var_name%_%"info.log")
 
     var_tbl %<>%
-      dplyr::select(-matches("year"), -matches("mon"), -matches("day"),
-             -matches("hour"), -matches("min")) %>%
+      select(-matches("year")) %>%
+      select(-matches("mon")) %>%
+      select(-matches("day")) %>%
+      select(-matches("hour")) %>%
+      select(-matches("min")) %>%
       mutate_all(funs(ifelse(is.na(.), -99.0, .))) %>%
       mutate_all(funs(round(.,digits = 2)))
 
