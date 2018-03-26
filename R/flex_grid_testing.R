@@ -7,20 +7,23 @@ library("pracma")
 library("dplyr")
 library("tibble")
 library("pasta")
+library(purrr)
+library(sf)
 
 # Angabe des Pfades zur netcdf Datei
 setwd("H:/CLIM2POWER/DWD_Data/ToyDataSet_1980/day/tas/v20180221")
 # Hier werden alle Daten im Verzeichnis ausgelesen,
 #  die die Endung, die über pattern definiert ist, entsprechen - im Fall anpassen
-files <- list.files(pattern = '\\.nc$')
-ncdf_pth <- paste(getwd(), files[1], sep = "/")
-print(ncdf_pth)
+# files <- list.files(pattern = '\\.nc$')
+# ncdf_pth <- paste(getwd(), files[1], sep = "/")
+# print(ncdf_pth)
 
 # Definition des Verzeichnises, in dem die Einzugsgebiete / Zonen als Shape-file vorliegen
-setwd("H:/CLIM2POWER/DWD_Data/ZonalData/")
-basin_shp <- readOGR(dsn = getwd(), "Raab_Basins_NB")
+# setwd("H:/CLIM2POWER/DWD_Data/ZonalData/")
+basin_pth <- "D:/UnLoadC3/00_RB_SWAT/raab_sb4/Watershed/Shapes/subs1.shp"
+basin_shp <- read_sf(basin_pth)
 # Angabe des Spaltennamens der Zonen, für die die Werte aggregiert werden sollen
-shp_index <- "NB"
+shp_index <- "Subbasin"
 
 ncdf_crs <- as.character(crs(basin_shp))
 
@@ -33,68 +36,72 @@ time_lbl = "time"
 #                           lat_lbl = "lat", lon_lbl = "lon", time_lbl = "time") {
 
   # Load NCDF file ------------------------------------------------------
-  ncin <- nc_open(filename = ncdf_pth)
+ncdf_pth <- "D:/Projects_R/tas.nc"
 
-  # Read variable and date from ncdf
-  tmp_array <- ncvar_get(ncin,var_lbl)
-  time <- ncvar_get(ncin, time_lbl)
+ncin <- nc_open(filename = ncdf_pth)
 
-  # Get initial time step
-  t_0 <- ncatt_get(ncin,time_lbl,"units")$value %>%
-    gsub("days since |seconds since ", "", .) %>%
-    as.Date()
+# Read variable and date from ncdf
+tmp_array <- ncvar_get(ncin,var_lbl) %>%
+  array_branch(., margin = 3) %>%
+  map(.,  function(array){array %>% t(.) %>% apply(., 2, rev)})
 
-  nc_close(ncin)
+lat <- ncvar_get(ncin,lat_lbl) %>%
+  t() %>%
+  apply(., 2, rev)
 
-  # Load lat/lon as raster and create polygon index layer from it -------
-  lat <- raster(ncdf_pth, varname = lat_lbl)
-  lon <- raster(ncdf_pth, varname = lon_lbl)
+lon <- ncvar_get(ncin,lon_lbl) %>%
+  t() %>%
+  apply(., 2, rev)
 
+time <- ncvar_get(ncin, time_lbl)
 
-  #MODIFIED VERSION FOR SPATIAL POLYGON!!!
-  lat <- as.matrix(lat)
-  lon <- as.matrix(lon)
+# Get initial time step
+t_0 <- ncatt_get(ncin,time_lbl,"units")$value %>%
+  gsub("days since |seconds since ", "", .) %>%
+  as.Date()
 
-  # latlon <- cbind(lat, lon) %>% st_multipoint(x = .)
-  # test <- st_voronoi(x = latlon)
-  rst_dim <- dim(lat)
-  rst_dim_corner <- rst_dim - 1
-
-  lat_corner <- ((lat[1:(rst_dim[1] - 1), ] + lat[2:rst_dim[1], ])/2) %>%
-    .[,2:rst_dim[2]]
-  lon_corner <- ((lon[ ,1:(rst_dim[2] - 1)] + lon[ ,2:rst_dim[2]])/2) %>%
-    .[2:rst_dim[1], ]
-  latlon <- cbind(as.vector(lat_corner), as.vector(lon_corner))
-
-  pnt_ind <- expand.grid(1:(rst_dim_corner[1] - 1), 1:(rst_dim_corner[2] - 1))
-
-  pnt_list <- as.list(as.data.frame(t(pnt_ind)))
-
-  extract_poly_coord <- function(ind, lat, lon){
-    cbind(lat[c(ind[1], ind[1] + 1, ind[1] + 1, ind[1], ind[1])],
-          lon[c(ind[1], ind[1], ind[1] + 1, ind[1] + 1, ind[1])])
-  }
-
-  poly_box <- map(pnt_list, extract_poly_coord, lat_corner, lon_corner)
-
-  test <- st_polygon(x = poly_box) %>% st_sfc() %>% st_sf()
+nc_close(ncin)
 
 
+# latlon <- cbind(lat, lon) %>% st_multipoint(x = .)
+# test <- st_voronoi(x = latlon)
+rst_dim <- dim(lat)
 
-  rst_dim <- dim(lon) #x = horiz = lon / y = vert = lat
-  rst_len <- length(lon)
+lat_corner <- ((lat[1:(rst_dim[1] - 1), ] + lat[2:rst_dim[1], ])/2) %>%
+  rbind(lat[1,] + (lat[1, ] - lat[2, ]), .)
 
-  # Convert to points and match the lat and lons
-  plat <- rasterToPoints(lat)
-  plon <- rasterToPoints(lon)
-  lonlat <- cbind(plon[,3], plat[,3])
+lon_corner <- ((lon[ ,1:(rst_dim[2] - 1)] + lon[ ,2:rst_dim[2]])/2) %>%
+  cbind(lon[,1] + (lon[, 1] - lon[, 2]), .)
 
-  # Specify the lonlat as spatial points with projection as long/lat
-  lonlat_proj <- SpatialPointsDataFrame(coords = lonlat,
-                                        proj4string = CRS(ncdf_crs),
-                                        data = data.frame(value = 1:length(lon))) %>%
-  SpatialPoints(coords = ., proj4string = CRS(ncdf_crs)) %>%
-  spTransform(., CRSobj = crs(basin_shp))
+pnt_ind <- expand.grid(1:(rst_dim[1] - 1), 1:(rst_dim[2] - 1))
+
+pnt_list <- as.list(as.data.frame(t(pnt_ind)))
+
+extract_poly_coord <- function(ind, lat, lon){
+  cbind(lon[ind[1], c(ind[2], ind[2] + 1, ind[2] + 1, ind[2], ind[2])],
+    lat[c(ind[1], ind[1] + 1, ind[1] + 1, ind[1], ind[1]), ind[2]])
+}
+
+poly_box <- map(pnt_list, extract_poly_coord, lat_corner, lon_corner)
+
+test <- st_polygon(x = poly_box) %>% st_sfc() %>% st_sf()
+plot(test)
+
+
+rst_dim <- dim(lon) #x = horiz = lon / y = vert = lat
+rst_len <- length(lon)
+
+# Convert to points and match the lat and lons
+plat <- rasterToPoints(lat)
+plon <- rasterToPoints(lon)
+lonlat <- cbind(plon[,3], plat[,3])
+
+# Specify the lonlat as spatial points with projection as long/lat
+lonlat_proj <- SpatialPointsDataFrame(coords = lonlat,
+                                      proj4string = CRS(ncdf_crs),
+                                      data = data.frame(value = 1:length(lon))) %>%
+SpatialPoints(coords = ., proj4string = CRS(ncdf_crs)) %>%
+spTransform(., CRSobj = crs(basin_shp))
 
   # Derive lat/lon cell size of projected raster
   cell_size <- c(lonlat_proj@coords[1:rst_dim[2],1] %>% diff() %>% mean(),
@@ -123,7 +130,7 @@ time_lbl = "time"
 
   idx_poly <- matrix(data = 1:rst_len, nrow = rst_dim[2]) %>%
     t() %>%
-    #apply(., 2, rev) %>%
+    apply(., 2, rev) %>%
     raster() %>%
     assign_crs(., crs(basin_shp)) %>%
     assign_ext(., ext) %>%
