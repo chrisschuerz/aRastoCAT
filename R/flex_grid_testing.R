@@ -9,6 +9,7 @@ library("tibble")
 library("pasta")
 library(purrr)
 library(sf)
+library(dplyr)
 
 # Angabe des Pfades zur netcdf Datei
 setwd("H:/CLIM2POWER/DWD_Data/ToyDataSet_1980/day/tas/v20180221")
@@ -41,9 +42,12 @@ ncdf_pth <- "D:/Projects_R/tas.nc"
 ncin <- nc_open(filename = ncdf_pth)
 
 # Read variable and date from ncdf
-tmp_array <- ncvar_get(ncin,var_lbl) %>%
+var_data <- ncvar_get(ncin,var_lbl) %>%
   array_branch(., margin = 3) %>%
-  map(.,  function(array){array %>% t(.) %>% apply(., 2, rev)})
+  map(.,  function(array){array %>% t(.) %>% apply(., 2, rev)}) %>%
+  map(., as.vector) %>%
+  do.call(cbind, .) %>%
+  as_tibble()
 
 lat <- ncvar_get(ncin,lat_lbl) %>%
   t() %>%
@@ -61,7 +65,6 @@ t_0 <- ncatt_get(ncin,time_lbl,"units")$value %>%
   as.Date()
 
 nc_close(ncin)
-
 
 # latlon <- cbind(lat, lon) %>% st_multipoint(x = .)
 # test <- st_voronoi(x = latlon)
@@ -115,16 +118,13 @@ extract_poly_coord <- function(ind, lat, lon){
 crs_grid <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 var_grid <- map(ind_list, extract_poly_coord, lat_corner, lon_corner) %>%
-  map(poly_box, function(poly_i){st_polygon(x = list(poly_i), dim = "XY")}) %>%
+  map(., function(poly_i){st_polygon(x = list(poly_i), dim = "XY")}) %>%
   st_sfc(., crs = crs_grid) %>%
-  st_sf(tibble(a = 1:100, b = runif(100)), geometry = .)
+  st_sf(var_data, geometry = .)
 
+basin_wgs <- st_transform(basin_shp, crs = crs_grid)
 
-
-test <- map(poly_box, function(poly_i){st_polygon(x = list(poly_i), dim = "XY")}) %>%
-  st_sfc(., crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") %>%
-  st_sf(tibble(a = 1:100, b = runif(100)), geometry = .)
-
+int <- as_tibble(st_intersection(var_grid, basin_wgs))
 
 
 # %>% st_sfc() %>% st_sf()
