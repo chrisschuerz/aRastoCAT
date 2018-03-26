@@ -66,25 +66,68 @@ nc_close(ncin)
 # latlon <- cbind(lat, lon) %>% st_multipoint(x = .)
 # test <- st_voronoi(x = latlon)
 rst_dim <- dim(lat)
-
-lat_corner <- ((lat[1:(rst_dim[1] - 1), ] + lat[2:rst_dim[1], ])/2) %>%
-  rbind(lat[1,] + (lat[1, ] - lat[2, ]), .)
-
-lon_corner <- ((lon[ ,1:(rst_dim[2] - 1)] + lon[ ,2:rst_dim[2]])/2) %>%
-  cbind(lon[,1] + (lon[, 1] - lon[, 2]), .)
-
+rst_ind <- expand.grid(1:(rst_dim[1]), 1:(rst_dim[2]))
 pnt_ind <- expand.grid(1:(rst_dim[1] - 1), 1:(rst_dim[2] - 1))
 
-pnt_list <- as.list(as.data.frame(t(pnt_ind)))
-
-extract_poly_coord <- function(ind, lat, lon){
-  cbind(lon[ind[1], c(ind[2], ind[2] + 1, ind[2] + 1, ind[2], ind[2])],
-    lat[c(ind[1], ind[1] + 1, ind[1] + 1, ind[1], ind[1]), ind[2]])
+calc_corner <- function(ind, mtr) {
+  mean(mtr[ind[1]:(ind[1] + 1), ind[2]:(ind[2] + 1)])}
+extrapol_row <- function(mtr){
+  n_row <- nrow(mtr)
+  rbind(mtr[1, ] + (mtr[1, ] - mtr[2, ]),
+        mtr,
+        mtr[n_row, ] + (mtr[n_row, ] - mtr[n_row - 1, ]))
+}
+extrapol_col <- function(mtr){
+  n_col <- ncol(mtr)
+  cbind(mtr[ , 1] + (mtr[ , 1] - mtr[ , 2]),
+        mtr,
+        mtr[ , n_col] + (mtr[ , n_col] - mtr[, n_col - 1]))
 }
 
-poly_box <- map(pnt_list, extract_poly_coord, lat_corner, lon_corner)
+lat_corner <- apply(pnt_ind, 1, calc_corner, lat) %>%
+  matrix(., nrow = rst_dim[1] - 1, ncol = rst_dim[2] - 1) %>%
+  extrapol_row(.) %>%
+  extrapol_col(.)
 
-test <- st_polygon(x = poly_box) %>% st_sfc() %>% st_sf()
+lon_corner <- apply(pnt_ind, 1, calc_corner, lon) %>%
+  matrix(., nrow = rst_dim[1] - 1, ncol = rst_dim[2] - 1) %>%
+  extrapol_row(.) %>%
+  extrapol_col(.)
+
+
+ind_list <- as.list(as.data.frame(t(rst_ind)))
+
+extract_poly_coord <- function(ind, lat, lon){
+  cbind(c(lon[ind[1]    , ind[2]],
+          lon[ind[1]    , ind[2] + 1],
+          lon[ind[1] + 1, ind[2] + 1],
+          lon[ind[1] + 1, ind[2]],
+          lon[ind[1]    , ind[2]]),
+        c(lat[ind[1]    , ind[2]],
+          lat[ind[1]    , ind[2] + 1],
+          lat[ind[1] + 1, ind[2] + 1],
+          lat[ind[1] + 1, ind[2]],
+          lat[ind[1]    , ind[2]]))
+}
+
+
+
+crs_grid <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
+var_grid <- map(ind_list, extract_poly_coord, lat_corner, lon_corner) %>%
+  map(poly_box, function(poly_i){st_polygon(x = list(poly_i), dim = "XY")}) %>%
+  st_sfc(., crs = crs_grid) %>%
+  st_sf(tibble(a = 1:100, b = runif(100)), geometry = .)
+
+
+
+test <- map(poly_box, function(poly_i){st_polygon(x = list(poly_i), dim = "XY")}) %>%
+  st_sfc(., crs = "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0") %>%
+  st_sf(tibble(a = 1:100, b = runif(100)), geometry = .)
+
+
+
+# %>% st_sfc() %>% st_sf()
 plot(test)
 
 
