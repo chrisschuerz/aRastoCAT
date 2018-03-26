@@ -120,11 +120,13 @@ crs_grid <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 var_grid <- map(ind_list, extract_poly_coord, lat_corner, lon_corner) %>%
   map(., function(poly_i){st_polygon(x = list(poly_i), dim = "XY")}) %>%
   st_sfc(., crs = crs_grid) %>%
-  st_sf(var_data, geometry = .)
+  st_sf(geometry = .) #var_data,
 
 basin_wgs <- st_transform(basin_shp, crs = crs_grid)
 
-int <- as_tibble(st_intersection(var_grid, basin_wgs))
+int <- st_intersection(basin_wgs, var_grid)
+
+int$area <- st_area(int$geoms)
 
 
 # %>% st_sfc() %>% st_sf()
