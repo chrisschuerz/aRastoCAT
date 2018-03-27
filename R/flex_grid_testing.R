@@ -12,7 +12,7 @@ library(sf)
 library(dplyr)
 
 # Angabe des Pfades zur netcdf Datei
-setwd("H:/CLIM2POWER/DWD_Data/ToyDataSet_1980/day/tas/v20180221")
+# setwd("H:/CLIM2POWER/DWD_Data/ToyDataSet_1980/day/tas/v20180221")
 # Hier werden alle Daten im Verzeichnis ausgelesen,
 #  die die Endung, die über pattern definiert ist, entsprechen - im Fall anpassen
 # files <- list.files(pattern = '\\.nc$')
@@ -21,8 +21,15 @@ setwd("H:/CLIM2POWER/DWD_Data/ToyDataSet_1980/day/tas/v20180221")
 
 # Definition des Verzeichnises, in dem die Einzugsgebiete / Zonen als Shape-file vorliegen
 # setwd("H:/CLIM2POWER/DWD_Data/ZonalData/")
+crs_grid <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
 basin_pth <- "D:/UnLoadC3/00_RB_SWAT/raab_sb4/Watershed/Shapes/subs1.shp"
 basin_shp <- read_sf(basin_pth)
+
+basin_trans <- st_transform(basin_shp, crs = crs_grid)
+
+ext_trans <- extent(basin_trans)
+
 # Angabe des Spaltennamens der Zonen, für die die Werte aggregiert werden sollen
 shp_index <- "Subbasin"
 
@@ -42,13 +49,6 @@ ncdf_pth <- "D:/Projects_R/tas.nc"
 ncin <- nc_open(filename = ncdf_pth)
 
 # Read variable and date from ncdf
-var_data <- ncvar_get(ncin,var_lbl) %>%
-  array_branch(., margin = 3) %>%
-  map(.,  function(array){array %>% t(.) %>% apply(., 2, rev)}) %>%
-  map(., as.vector) %>%
-  do.call(cbind, .) %>%
-  as_tibble()
-
 lat <- ncvar_get(ncin,lat_lbl) %>%
   t() %>%
   apply(., 2, rev)
@@ -56,6 +56,10 @@ lat <- ncvar_get(ncin,lat_lbl) %>%
 lon <- ncvar_get(ncin,lon_lbl) %>%
   t() %>%
   apply(., 2, rev)
+
+var_data <- ncvar_get(ncin,var_lbl) %>%
+  array_branch(., margin = 3) %>%
+  map(.,  function(array){array %>% t(.) %>% apply(., 2, rev)})
 
 time <- ncvar_get(ncin, time_lbl)
 
@@ -66,6 +70,49 @@ t_0 <- ncatt_get(ncin,time_lbl,"units")$value %>%
 
 nc_close(ncin)
 
+limit_lat <- function(lat, ext){
+  lat_lw <- which(rowSums(lat < ext[3]) == ncol(lat)) %>% .[1]
+  lat_up <- which(rowSums(lat > ext[4]) == ncol(lat)) %>% .[length(.)]
+  lat_up:lat_lw
+}
+
+limit_lon <- function(lon, ext){
+  lon_lf <- which(colSums(lon < ext[1]) == nrow(lon)) %>% .[length(.)]
+  lon_rg <- which(colSums(lon > ext[2]) == nrow(lon)) %>% .[1]
+  lon_lf:lon_rg
+}
+
+dim_init <- dim(lat)
+
+iter_check <- TRUE
+while(iter_check){
+  ind_lat <- limit_lat(lat, ext_trans)
+  ind_lon <- limit_lon(lon, ext_trans)
+
+  if(all(dim(lat) == dim(init))){
+    if(!all(ind_lat %in% (1:dim_init[1])) &
+       !all(ind_lon %in% (1:dim_init[2]))){
+      stop("Basin shape too close to any of the grid boundaries!")
+    }
+  }
+  lat <- lat[ind_lat, ind_lon]
+  lon <- lon[ind_lat, ind_lon]
+  var_data <- map(var_data, function(mtr){mtr[ind_lat, ind_lon]})
+
+  iter_check <-  ((sum(ind_lat) != sum(ind_lat_prev)) |
+                  (sum(ind_lon) != sum(ind_lon_prev)))
+  ind_lat_prev <- ind_lat
+  ind_lon_prev <- ind_lon
+}
+
+var_data %<>%
+  map(., as.vector) %>%
+  do.call(cbind, .) %>%
+  as_tibble() %>%
+  set_colnames("timestep"%_%1:ncol(.)) %>%
+  add_column(., idx = 1:nrow(.), .before = 1)
+
+
 # latlon <- cbind(lat, lon) %>% st_multipoint(x = .)
 # test <- st_voronoi(x = latlon)
 rst_dim <- dim(lat)
@@ -74,12 +121,14 @@ pnt_ind <- expand.grid(1:(rst_dim[1] - 1), 1:(rst_dim[2] - 1))
 
 calc_corner <- function(ind, mtr) {
   mean(mtr[ind[1]:(ind[1] + 1), ind[2]:(ind[2] + 1)])}
+
 extrapol_row <- function(mtr){
   n_row <- nrow(mtr)
   rbind(mtr[1, ] + (mtr[1, ] - mtr[2, ]),
         mtr,
         mtr[n_row, ] + (mtr[n_row, ] - mtr[n_row - 1, ]))
 }
+
 extrapol_col <- function(mtr){
   n_col <- ncol(mtr)
   cbind(mtr[ , 1] + (mtr[ , 1] - mtr[ , 2]),
@@ -113,24 +162,41 @@ extract_poly_coord <- function(ind, lat, lon){
           lat[ind[1]    , ind[2]]))
 }
 
-
-
-crs_grid <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
-
 var_grid <- map(ind_list, extract_poly_coord, lat_corner, lon_corner) %>%
   map(., function(poly_i){st_polygon(x = list(poly_i), dim = "XY")}) %>%
   st_sfc(., crs = crs_grid) %>%
-  st_sf(geometry = .) #var_data,
+  st_sf(idx = 1:nrow(var_data), geometry = .) #var_data,
 
-basin_wgs <- st_transform(basin_shp, crs = crs_grid)
+# int <-
+  st_intersection(basin_trans, var_grid) %>%
+  as_tibble() %>%
+  mutate(area = st_area(geoms)) %>%
+  select(!!shp_index, idx, area) %>%
+  rename(shp_index = !!shp_index) %>%
+  group_by(shp_index) %>%
+  mutate(area = area/sum(area)) %>%
+  left_join(., var_data, by = "idx") %>%
+  mutate_at(vars(starts_with("time")), funs(.*area)) %>%
+  select(-idx, -area) %>%
+  summarise_all(funs(sum)) %>%
+  ungroup() %>%
+  select(-shp_index) %>%
+  t() %>%
+  as_tibble() %>%
+  set_colnames(shp_index%_%1:ncol(.)) %>%
+  add_column(year = year(t_0 + time),
+             mon  = month(t_0 + time),
+             day  = day(t_0 + time),
+             hour = hour(t_0 + time),
+             min  = minute(t_0 + time),
+             .before = 1)
 
-int <- st_intersection(basin_wgs, var_grid)
-
-int$area <- st_area(int$geoms)
 
 
-# %>% st_sfc() %>% st_sf()
-plot(test)
+
+
+################################################################################
+################################################################################
 
 
 rst_dim <- dim(lon) #x = horiz = lon / y = vert = lat
