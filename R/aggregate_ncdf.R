@@ -6,7 +6,7 @@
 #' @param shp_index Name of the column in the basin shapefile attribute
 #'   table that provides the indices of the basin subunits
 #'
-#' @importFrom pasta %_%
+#' @importFrom  pasta %_%
 #' @importFrom dplyr mutate mutate_at select matches starts_with left_join
 #'   vars funs group_by summarise_all
 #' @importFrom tibble as_tibble add_column
@@ -22,13 +22,86 @@
 #'   of the aggregated variable for the respective basin subunits
 #' @export
 
-aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
-                           lat_lbl = "lat", lon_lbl = "lon", time_lbl = "time") {
+aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index, var_label,
+                           lat_label = "lat", lon_label = "lon", time_label = "time") {
 
-  # Load NCDF file ------------------------------------------------------
-  ncin <- nc_open(filename = ncdf_pth)
+  #-----------------------------------------------------------------------------
+  # Get the extent of the shape file in the reference system of the ncdf
+  ## Transform the shape file to the same reference system as the ncdf
+  shape_trans <- st_transform(basin_shp, crs = crs_ncdf)
+  ## extract the extent of the transformed shape file
+  ext_trans <- extent(shape_trans)
 
-  # Read variable and date from ncdf
+  #-----------------------------------------------------------------------------
+  # Extract and modify the variable array, the lat/lon matrices and the time
+  # vector from the NCDF file
+  ## Open the NCDF file located in the ncdf_path
+  nc_file <- nc_open(filename = ncdf_path)
+
+  ## Read the matrices providing the latitude and longitude for the data points
+  ## and rotate them by 90° clockwise
+  lat <- ncvar_get(nc_file,lat_label) %>%
+    t() %>%
+    apply(., 2, rev)
+
+  lon <- ncvar_get(nc_file,lon_label) %>%
+    t() %>%
+    apply(., 2, rev)
+
+  ## Read the array for the variable holding the data for each lat/lon point and
+  ## time step. Rotate it as done with lat/lon and save all matrices for the
+  ## individual timesteps in a list
+  var_data <- ncvar_get(nc_file,var_label) %>%
+    array_branch(., margin = 3) %>%
+    map(.,  function(array){array %>% t(.) %>% apply(., 2, rev)})
+
+  ## Read the time series vector from the NCDF file
+  time <- ncvar_get(nc_file, time_label)
+
+  ## The NCDF must contain an initial time step. Read the initial time step from
+  ## the NCDF
+  t_0 <- ncatt_get(nc_file, time_label,"units")$value %>%
+    gsub("days since |seconds since ", "", .) %>%
+    as.Date()
+
+  ## Close the connection to the NCDF file after aqcuiring all requiered data.
+  nc_close(nc_file)
+
+  #-----------------------------------------------------------------------------
+  # Reduce the extent of the provided NCDF data set to the extent of the provided
+  # shape file after transforming it to the reference system of the NCDF
+  ## Function to find the indices of the longitude matrix that covers c(xmin,
+  ## xmax) of the shape file extent
+  limit_lon <- function(lon, ext){
+    lon_lf <- which(colSums(lon < ext[1]) == nrow(lon)) %>% .[length(.)]
+    lon_rg <- which(colSums(lon > ext[2]) == nrow(lon)) %>% .[1]
+    lon_lf:lon_rg
+  }
+
+  ## Function to find the indices of the latitude matrix that covers c(ymin,
+  ## ymax) of the shape file extent
+  limit_lat <- function(lat, ext){
+    lat_lw <- which(rowSums(lat < ext[3]) == ncol(lat)) %>% .[1]
+    lat_up <- which(rowSums(lat > ext[4]) == ncol(lat)) %>% .[length(.)]
+    lat_up:lat_lw
+  }
+
+
+
+  ## Transform the shape file to the same reference system as the ncdf
+  shape_trans <- st_transform(basin_shp, crs = crs_ncdf)
+  ## extract the extent of the transformed shape file
+  ext_trans <- extent(shape_trans)
+
+
+
+
+
+
+
+
+
+
   tmp_array <- ncvar_get(ncin,var_lbl)
   time <- ncvar_get(ncin, time_lbl)
 
