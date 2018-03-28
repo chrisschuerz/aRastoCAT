@@ -85,6 +85,9 @@ limit_lon <- function(lon, ext){
 dim_init <- dim(lat)
 
 iter_check <- TRUE
+ind_lat_prev <- 0
+ind_lon_prev <- 0
+
 while(iter_check){
   ind_lat <- limit_lat(lat, ext_trans)
   ind_lon <- limit_lon(lon, ext_trans)
@@ -167,7 +170,7 @@ var_grid <- map(ind_list, extract_poly_coord, lat_corner, lon_corner) %>%
   st_sfc(., crs = crs_grid) %>%
   st_sf(idx = 1:nrow(var_data), geometry = .) #var_data,
 
-# int <-
+int <-
   st_intersection(basin_trans, var_grid) %>%
   as_tibble() %>%
   mutate(area = st_area(geoms)) %>%
@@ -190,7 +193,6 @@ var_grid <- map(ind_list, extract_poly_coord, lat_corner, lon_corner) %>%
              hour = hour(t_0 + time),
              min  = minute(t_0 + time),
              .before = 1)
-
 
 
 
