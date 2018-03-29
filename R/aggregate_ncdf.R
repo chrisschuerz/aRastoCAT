@@ -3,9 +3,10 @@
 #' @param ncdf_path Path to the ncdf file
 #' @param crs_ncdf Current reference system of ncdf file
 #' @param shape_file Shape file with the basin sub-unit polygons
-#' @param shape_index Name of the column in the basin shapefile attribute
-#'   table that provides the indices of the basin subunits
-#' @param var_label Name of the variable array to be extracted from the ncdf file
+#' @param shape_index Name of the column in the basin shapefile attribute table
+#'   that provides the indices of the basin subunits
+#' @param var_label Name of the variable array to be extracted from the ncdf
+#'   file
 #' @param lat_label Name of the latitude matrix in the ncdf file
 #' @param lon_label Name of the longitude matrix  in the ncdf file
 #' @param time_label Name of the time vector in the ncdf file
@@ -16,12 +17,12 @@
 #' @importFrom magrittr %>% %<>%  set_colnames
 #' @importFrom ncdf4 nc_close nc_open ncatt_get ncvar_get
 #' @importFrom purrr array_branch map
-#' @importFrom sf st_area st_bbox st_intersection st_polygon st_sf st_sfc st_geometry
-#'   st_transform
+#' @importFrom sf st_area st_bbox st_intersection st_polygon st_set_agr st_sf
+#'   st_sfc st_transform
 #' @importFrom tibble add_column as_tibble
 #'
-#' @return Returns a tibble that provides the time series
-#'   of the aggregated variable for the respective basin subunits
+#' @return Returns a tibble that provides the time series of the aggregated
+#'   variable for the respective basin subunits
 #' @export
 
 aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index,
@@ -217,9 +218,10 @@ aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index,
   # in the shape file
 
   data_aggr <- var_grid %>%
-    st_intersection(shape_trans, .) %>% # Intersect the grid with the shape file
-    as_tibble() %>%
-    mutate(area_frct = st_area(geoms)) %>% # Calculate the area of each itersection
+    st_set_agr(., "constant") %>% #Assumption of constant attributes to avoid warnings
+    st_intersection(st_set_agr(shape_trans, "constant"), .) %>% # Intersect the grid with the shape file
+    as_tibble(.) %>%
+    mutate(area_frct = st_area(geoms) %>% as.numeric(.)) %>% # Calculate the area of each itersection
     select(!!shp_index, idx, area_frct) %>% # Select The subunit index, grid index and area
     rename(shp_index = !!shp_index) %>% # Rename shape index
     group_by(shp_index) %>%

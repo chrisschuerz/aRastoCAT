@@ -14,10 +14,11 @@ aggregate_ncdf(ncdf_path, crs_ncdf, shape_file, shape_index, var_label,
 
 \item{shape_file}{Shape file with the basin sub-unit polygons}
 
-\item{shape_index}{Name of the column in the basin shapefile attribute
-table that provides the indices of the basin subunits}
+\item{shape_index}{Name of the column in the basin shapefile attribute table
+that provides the indices of the basin subunits}
 
-\item{var_label}{Name of the variable array to be extracted from the ncdf file}
+\item{var_label}{Name of the variable array to be extracted from the ncdf
+file}
 
 \item{lat_label}{Name of the latitude matrix in the ncdf file}
 
@@ -26,8 +27,8 @@ table that provides the indices of the basin subunits}
 \item{time_label}{Name of the time vector in the ncdf file}
 }
 \value{
-Returns a tibble that provides the time series
-  of the aggregated variable for the respective basin subunits
+Returns a tibble that provides the time series of the aggregated
+  variable for the respective basin subunits
 }
 \description{
 Aggregate NCDF Climate (Raster) Data for Catchment Subbasins
