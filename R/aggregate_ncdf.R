@@ -16,7 +16,7 @@
 #' @importFrom magrittr %>% %<>%  set_colnames
 #' @importFrom ncdf4 nc_close nc_open ncatt_get ncvar_get
 #' @importFrom purrr array_branch map
-#' @importFrom sf st_area st_bbox st_intersection st_polygon st_sf st_sfc
+#' @importFrom sf st_area st_bbox st_intersection st_polygon st_sf st_sfc st_geometry
 #'   st_transform
 #' @importFrom tibble add_column as_tibble
 #'
@@ -50,7 +50,7 @@ aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index,
   ## individual timesteps in a list
   var_data <- ncvar_get(nc_file,var_label) %>%
     array_branch(., margin = 3) %>%
-    map(.,  rotate_cc(.))
+    map(.,  rotate_cc)
 
   ## Read the time series vector from the NCDF file
   time <- ncvar_get(nc_file, time_label)
@@ -109,7 +109,7 @@ aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index,
 
     ### Check for the first run if shape file is inside the exntent of the
     ### matrices
-    if(all(dim(lat) == dim(init))){
+    if(all(dim(lat) == dim(dim_init))){
       if(!all(ind_lat %in% (1:dim_init[1])) &
          !all(ind_lon %in% (1:dim_init[2]))){
         stop("Basin shape too close to any of the grid boundaries!")
@@ -216,22 +216,22 @@ aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index,
   # weighted averages of each times step in the data for the individual subunits
   # in the shape file
 
-  data_aggr <- var_grid
-    st_intersection(basin_trans, .) %>% # Intersect the grid with the shape file
+  data_aggr <- var_grid %>%
+    st_intersection(shape_trans, .) %>% # Intersect the grid with the shape file
     as_tibble() %>%
-    mutate(area = st_area(geoms)) %>% # Calculate the area of each itersection
-    select(!!shp_index, idx, area) %>% # Select The subunit index, grid index and area
+    mutate(area_frct = st_area(geoms)) %>% # Calculate the area of each itersection
+    select(!!shp_index, idx, area_frct) %>% # Select The subunit index, grid index and area
     rename(shp_index = !!shp_index) %>% # Rename shape index
     group_by(shp_index) %>%
-    mutate(area = area/sum(area)) %>% # Calculate fractions of areas
+    mutate(area_frct = area_frct/sum(area_frct)) %>% # Calculate fractions of areas
     left_join(., var_data, by = "idx") %>% # Jion with variable data
-    mutate_at(vars(starts_with("time")), funs(.*area)) %>% # multiply all timesteps with area fraction
-    select(-idx, -area) %>%
+    mutate_at(vars(starts_with("time")), funs(.*area_frct)) %>% # multiply all timesteps with area fraction
+    select(-idx, -area_frct) %>%
     summarise_all(funs(sum)) %>% # Sum up the fractions for all shape sub units
-    ungroup() %>%
+    ungroup(.) %>%
     select(-shp_index) %>%
-    t() %>% # Change format to column = Shape sub unit, row = time step
-    as_tibble() %>%
+    t(.) %>% # Change format to column = Shape sub unit, row = time step
+    as_tibble(.) %>%
     set_colnames(shp_index%_%1:ncol(.)) %>%
     add_column(year = year(t_0 + time), # Add date to the table
                mon  = month(t_0 + time),

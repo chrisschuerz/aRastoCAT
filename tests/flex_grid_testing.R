@@ -21,7 +21,6 @@ library(dplyr)
 
 # Definition des Verzeichnises, in dem die Einzugsgebiete / Zonen als Shape-file vorliegen
 # setwd("H:/CLIM2POWER/DWD_Data/ZonalData/")
-crs_grid <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 basin_pth <- "D:/UnLoadC3/00_RB_SWAT/raab_sb4/Watershed/Shapes/subs1.shp"
 basin_shp <- read_sf(basin_pth)
@@ -31,20 +30,21 @@ basin_trans <- st_transform(basin_shp, crs = crs_grid)
 ext_trans <- extent(basin_trans)
 
 # Angabe des Spaltennamens der Zonen, für die die Werte aggregiert werden sollen
+ncdf_pth <- "D:/Projects_R/tas.nc"
+crs_grid <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+
 shp_index <- "Subbasin"
-
-ncdf_crs <- as.character(crs(basin_shp))
-
 var_lbl <- "tas"
 lat_lbl = "lat"
 lon_lbl = "lon"
 time_lbl = "time"
 
-#aggregate_ncdf <- function(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
-#                           lat_lbl = "lat", lon_lbl = "lon", time_lbl = "time") {
+ncdf_test <- aggregate_ncdf(ncdf_path = ncdf_pth, crs_ncdf = crs_grid,
+                            shape_file = basin_shp, shape_index = Subbasin,
+                            var_label = var_lbl, lat_label = lat_lbl,
+                            lon_label = lon_lbl, time_label = time_lbl)
 
   # Load NCDF file ------------------------------------------------------
-ncdf_pth <- "D:/Projects_R/tas.nc"
 
 ncin <- nc_open(filename = ncdf_pth)
 
