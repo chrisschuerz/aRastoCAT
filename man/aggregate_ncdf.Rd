@@ -4,18 +4,26 @@
 \alias{aggregate_ncdf}
 \title{Aggregate NCDF Climate (Raster) Data for Catchment Subbasins}
 \usage{
-aggregate_ncdf(ncdf_pth, basin_shp, ncdf_crs, shp_index, var_lbl,
-  lat_lbl = "lat", lon_lbl = "lon", time_lbl = "time")
+aggregate_ncdf(ncdf_path, crs_ncdf, shape_file, shape_index, var_label,
+  lat_label = "lat", lon_label = "lon", time_label = "time")
 }
 \arguments{
-\item{ncdf_pth}{Path to the ncdf file}
+\item{ncdf_path}{Path to the ncdf file}
 
-\item{basin_shp}{Shape file with the basin sub-unit polygons}
+\item{crs_ncdf}{Current reference system of ncdf file}
 
-\item{ncdf_crs}{Current reference system of ncdf file}
+\item{shape_file}{Shape file with the basin sub-unit polygons}
 
-\item{shp_index}{Name of the column in the basin shapefile attribute
+\item{shape_index}{Name of the column in the basin shapefile attribute
 table that provides the indices of the basin subunits}
+
+\item{var_label}{Name of the variable array to be extracted from the ncdf file}
+
+\item{lat_label}{Name of the latitude matrix in the ncdf file}
+
+\item{lon_label}{Name of the longitude matrix  in the ncdf file}
+
+\item{time_label}{Name of the time vector in the ncdf file}
 }
 \value{
 Returns a tibble that provides the time series

@@ -1,36 +1,32 @@
 #' Aggregate NCDF Climate (Raster) Data for Catchment Subbasins
 #'
-#' @param ncdf_pth Path to the ncdf file
-#' @param basin_shp Shape file with the basin sub-unit polygons
-#' @param ncdf_crs Current reference system of ncdf file
-#' @param shp_index Name of the column in the basin shapefile attribute
+#' @param ncdf_path Path to the ncdf file
+#' @param crs_ncdf Current reference system of ncdf file
+#' @param shape_file Shape file with the basin sub-unit polygons
+#' @param shape_index Name of the column in the basin shapefile attribute
 #'   table that provides the indices of the basin subunits
+#' @param var_label Name of the variable array to be extracted from the ncdf file
+#' @param lat_label Name of the latitude matrix in the ncdf file
+#' @param lon_label Name of the longitude matrix  in the ncdf file
+#' @param time_label Name of the time vector in the ncdf file
 #'
-#' @importFrom  pasta %_%
-#' @importFrom dplyr mutate mutate_at select matches starts_with left_join
-#'   vars funs group_by summarise_all
-#' @importFrom tibble as_tibble add_column
-#' @import     lubridate
-#' @importFrom magrittr %>% set_colnames subtract
-#' @importFrom ncdf4 nc_open nc_close ncvar_get ncatt_get
-#' @importFrom raster raster rasterToPoints extent crs intersect
-#'   removeTmpFiles
-#' @importFrom sp SpatialPoints SpatialPointsDataFrame spTransform
-#'   SpatialPolygonsDataFrame
+#' @importFrom dplyr funs group_by left_join mutate mutate_at rename select
+#'   starts_with summarise_all ungroup vars
+#' @importFrom lubridate day hour minute month year
+#' @importFrom magrittr %>% %<>%  set_colnames
+#' @importFrom ncdf4 nc_close nc_open ncatt_get ncvar_get
+#' @importFrom purrr array_branch map
+#' @importFrom sf st_area st_bbox st_intersection st_polygon st_sf st_sfc
+#'   st_transform
+#' @importFrom tibble add_column as_tibble
 #'
 #' @return Returns a tibble that provides the time series
 #'   of the aggregated variable for the respective basin subunits
 #' @export
 
-aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index, var_label,
-                           lat_label = "lat", lon_label = "lon", time_label = "time") {
-
-  #-----------------------------------------------------------------------------
-  # Get the extent of the shape file in the reference system of the ncdf
-  ## Transform the shape file to the same reference system as the ncdf
-  shape_trans <- st_transform(basin_shp, crs = crs_ncdf)
-  ## extract the extent of the transformed shape file
-  ext_trans <- extent(shape_trans)
+aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index,
+                           var_label, lat_label = "lat", lon_label = "lon",
+                           time_label = "time") {
 
   #-----------------------------------------------------------------------------
   # Extract and modify the variable array, the lat/lon matrices and the time
@@ -38,22 +34,23 @@ aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index, var_lab
   ## Open the NCDF file located in the ncdf_path
   nc_file <- nc_open(filename = ncdf_path)
 
+  ## Function to rotate a matrix 90° counter clockwise
+  rotate_cc <- function(mtr) { mtr %>% t(.) %>% apply(., 2, rev)}
+
   ## Read the matrices providing the latitude and longitude for the data points
   ## and rotate them by 90° clockwise
   lat <- ncvar_get(nc_file,lat_label) %>%
-    t() %>%
-    apply(., 2, rev)
+    rotate_cc(.)
 
   lon <- ncvar_get(nc_file,lon_label) %>%
-    t() %>%
-    apply(., 2, rev)
+    rotate_cc(.)
 
   ## Read the array for the variable holding the data for each lat/lon point and
   ## time step. Rotate it as done with lat/lon and save all matrices for the
   ## individual timesteps in a list
   var_data <- ncvar_get(nc_file,var_label) %>%
     array_branch(., margin = 3) %>%
-    map(.,  function(array){array %>% t(.) %>% apply(., 2, rev)})
+    map(.,  rotate_cc(.))
 
   ## Read the time series vector from the NCDF file
   time <- ncvar_get(nc_file, time_label)
@@ -72,24 +69,24 @@ aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index, var_lab
   # shape file after transforming it to the reference system of the NCDF
   ## Function to find the indices of the longitude matrix that covers c(xmin,
   ## xmax) of the shape file extent
-  limit_lon <- function(lon, ext){
-    lon_lf <- which(colSums(lon < ext[1]) == nrow(lon)) %>% .[length(.)]
-    lon_rg <- which(colSums(lon > ext[2]) == nrow(lon)) %>% .[1]
+  limit_lon <- function(lon, bbox){
+    lon_lf <- which(colSums(lon < bbox[1]) == nrow(lon)) %>% .[length(.)]
+    lon_rg <- which(colSums(lon > bbox[3]) == nrow(lon)) %>% .[1]
     lon_lf:lon_rg
   }
 
   ## Function to find the indices of the latitude matrix that covers c(ymin,
   ## ymax) of the shape file extent
-  limit_lat <- function(lat, ext){
-    lat_lw <- which(rowSums(lat < ext[3]) == ncol(lat)) %>% .[1]
-    lat_up <- which(rowSums(lat > ext[4]) == ncol(lat)) %>% .[length(.)]
+  limit_lat <- function(lat, bbox){
+    lat_lw <- which(rowSums(lat < bbox[2]) == ncol(lat)) %>% .[1]
+    lat_up <- which(rowSums(lat > bbox[4]) == ncol(lat)) %>% .[length(.)]
     lat_up:lat_lw
   }
 
   ## Transform the shape file to the same reference system as the ncdf
   shape_trans <- st_transform(basin_shp, crs = crs_ncdf)
-  ## extract the extent of the transformed shape file
-  ext_trans <- extent(shape_trans)
+  ## extract the extent (boundary box) of the transformed shape file
+  bbox_trans <- st_bbox(shape_trans)
 
   ## If the lat/lon system represented in the lat/lon matrices is curved the
   ## limitation of the extent to the one of the shape file is solved
@@ -107,8 +104,8 @@ aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index, var_lab
   while(iter_check){
     ### Find the indices of along lat and long that fully cover the shape file
     ### extent.
-    ind_lat <- limit_lat(lat, ext_trans)
-    ind_lon <- limit_lon(lon, ext_trans)
+    ind_lat <- limit_lat(lat, bbox_trans)
+    ind_lon <- limit_lon(lon, bbox_trans)
 
     ### Check for the first run if shape file is inside the exntent of the
     ### matrices
