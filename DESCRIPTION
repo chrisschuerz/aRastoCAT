@@ -17,7 +17,9 @@ Imports:
     magrittr,
     ncdf4,
     pasta,
+    purrr,
     raster,
+    sf,
     sp,
     tibble
 RoxygenNote: 5.0.1
