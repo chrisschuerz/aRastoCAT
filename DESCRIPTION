@@ -2,16 +2,15 @@ Package: aRastoCAT
 Type: Package
 Title: a Raster Climate data Aggregation Tool
 Version: 0.1.0
-Author: person("Christoph", "Schuerz",
+Authors@R: person("Christoph", "Schuerz",
                 email = "c.schuerz@gmail.com",
                 role = c("aut", "cre"))
-Maintainer: Christoph Schürz <c.schuerz@gmail.com>
-Description:Aggregation of different raster climate data for the input in 
+Maintainer: Christoph Sch?rz <c.schuerz@gmail.com>
+Description: Aggregation of different raster climate data for the input in 
     hydrological models. 
 License: GPL-3
-Encoding: UTF-8
 LazyData: true
-Imports: 
+Imports:
     dplyr,
     lubridate,
     magrittr,
@@ -23,3 +22,8 @@ Imports:
     sp,
     tibble
 RoxygenNote: 5.0.1
+Suggests: knitr,
+    rmarkdown
+VignetteBuilder: knitr
+URL: https://github.com/chrisschuerz/aRastoCAT
+BugReports: https://github.com/chrisschuerz/aRastoCAT/issues
