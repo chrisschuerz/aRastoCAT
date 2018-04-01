@@ -12,9 +12,8 @@ knitr::opts_chunk$set(
 )
 ```
 
-# aRastoCAT
-
-The goal of aRastoCAT is to ...
+# arastocat
+**ˋarastocatˋ provides tools to spatially and temporally aggregate raster climate data in NetCDF and bin format.** Many appications that involve climate data require these averaged for defined spatial units and with a specific time interval. For spatial units provided with a shape file ˋarastocatˋ extracts time series of area weighted average values for each spatial unit. The workflow further offers the option to temporally aggregate the timeseries on a 'hourly', 'daily', 'monthly', or 'yearly' timestep. To enable the processing of the data in a modern R programming workflow in the ˋtidyverseˋ the output is given in a tidy tibble. For the use of the aggregsted climate data with the **SWAT** model ˋarastocatˋ gives the option to write the data in the appropriate format.
 
 ## Installation
 
@@ -22,7 +21,7 @@ You can install aRastoCAT from github with:
 
 ```{r gh-installation, eval = FALSE}
 # install.packages("devtools")
-devtools::install_github("chrisschuerz/aRastoCAT")
+devtools::install_github("chrisschuerz/aRastoCAT", dependencies = TRUE)
 ```
 
 ## Example
