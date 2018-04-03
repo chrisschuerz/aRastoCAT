@@ -18,8 +18,8 @@
 #' @importFrom magrittr %>% %<>%  set_colnames
 #' @importFrom ncdf4 nc_close nc_open ncatt_get ncvar_get
 #' @importFrom purrr array_branch map
-#' @importFrom sf read_sf st_area st_as_sf st_bbox st_intersection st_polygon
-#'   st_set_agr st_sf st_sfc st_transform
+#' @importFrom sf read_sf st_area st_as_sf st_bbox st_crs st_intersection
+#'   st_polygon st_set_agr st_sf st_sfc st_transform
 #' @importFrom tibble add_column as_tibble
 #'
 #' @return Returns a tibble that provides the time series of the aggregated
@@ -217,32 +217,35 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
   ## indices as in the variable data table
   var_grid <- map(ind_list, extract_poly_coord, lat_corner, lon_corner) %>%
     map(., function(poly_i){st_polygon(x = list(poly_i), dim = "XY")}) %>%
-    st_sfc(., crs = crs_grid) %>%
-    st_sf(idx = 1:nrow(var_data), geometry = .)
+    st_sfc(., crs = crs_ncdf) %>%
+    st_sf(idx = 1:nrow(var_data), geometry = .) %>%
+    st_transform(., st_crs(shape_file)) %>%
+    st_set_agr(., "constant") #Assumption of constant attributes to avoid warnings
 
   #-----------------------------------------------------------------------------
   # Intersect the shape file with the genereated polygon grid and calculate area
   # weighted averages of each times step in the data for the individual subunits
   # in the shape file
 
-  data_aggr <- var_grid %>%
-    st_set_agr(., "constant") %>% #Assumption of constant attributes to avoid warnings
-    st_intersection(st_set_agr(shape_trans, "constant"), .) %>% # Intersect the grid with the shape file
+  grid_intersect <- var_grid %>%
+    st_intersection(st_set_agr(shape_file, "constant"), .) %>%
     as_tibble(.) %>%
-    mutate(area_frct = st_area(geoms) %>% as.numeric(.)) %>% # Calculate the area of each itersection
-    select(!!shp_index, idx, area_frct) %>% # Select The subunit index, grid index and area
-    rename(shp_index = !!shp_index) %>% # Rename shape index
-    group_by(shp_index) %>%
-    mutate(area_frct = area_frct/sum(area_frct)) %>% # Calculate fractions of areas
+    mutate(area = st_area(geometry) %>% as.numeric(.))  # Calculate the area of each itersection
+
+  data_aggregate <- tibble(shape_index = grid_intersect[[shape_index]],
+                           idx         = grid_intersect$idx,
+                           area_fract  = grid_intersect$area) %>%
+    group_by(shape_index) %>%
+    mutate(area_fract = area_fract/sum(area_fract)) %>% # Calculate fractions of areas
     left_join(., var_data, by = "idx") %>% # Jion with variable data
-    mutate_at(vars(starts_with("time")), funs(.*area_frct)) %>% # multiply all timesteps with area fraction
-    select(-idx, -area_frct) %>%
+    mutate_at(vars(starts_with("time")), funs(.*area_fract)) %>%  # multiply all timesteps with area fraction
+    select(-idx, -area_fract) %>%
     summarise_all(funs(sum)) %>% # Sum up the fractions for all shape sub units
     ungroup(.) %>%
-    select(-shp_index) %>%
+    select(-shape_index) %>%
     t(.) %>% # Change format to column = Shape sub unit, row = time step
     as_tibble(.) %>%
-    set_colnames(shp_index%_%1:ncol(.)) %>%
+    set_colnames(shape_index%_%1:ncol(.)) %>%
     add_column(year = year(t_0 + time), # Add date to the table
                mon  = month(t_0 + time),
                day  = day(t_0 + time),
@@ -250,5 +253,5 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
                min  = minute(t_0 + time),
                .before = 1)
 
-    return(data_aggr)
+    return(data_aggregate)
 }

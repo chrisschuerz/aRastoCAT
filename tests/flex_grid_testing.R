@@ -37,7 +37,7 @@ lon_lbl = "lon"
 time_lbl = "time"
 
 ncdf_test <- aggregate_ncdf(ncdf_file = ncdf_pth, crs_ncdf = crs_grid,
-                            shape_file = basin_shp, shape_index = Subbasin,
+                            shape_file = basin_shp, shape_index = shp_index,
                             var_label = var_lbl, lat_label = lat_lbl,
                             lon_label = lon_lbl, time_label = time_lbl)
 
