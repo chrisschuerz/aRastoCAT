@@ -25,12 +25,15 @@ library(dplyr)
 # setwd("H:/CLIM2POWER/DWD_Data/ZonalData/")
 
 basin_shp <- "D:/Projects_R/ZonalData/Raab_Basins_NB.shp"
+basin_shp <- "D:/UnLoadC3/00_RB_SWAT/raab_sb4/Watershed/Shapes/subs1.shp"
+basin_shp <- read_sf(basin_shp)
 
 # Angabe des Spaltennamens der Zonen, für die die Werte aggregiert werden sollen
 ncdf_pth <- "D:/Projects_R/tas.nc"
 crs_grid <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
-shp_index <- "NB"
+shp_index <- "NB"#
+shp_index <- "Subbasin"
 var_lbl <- "tas"
 lat_lbl = "lat"
 lon_lbl = "lon"
