@@ -2,7 +2,8 @@
 #'
 #' @param ncdf_file Path to the ncdf file
 #' @param crs_ncdf Current reference system of ncdf file
-#' @param shape_file Shape file with the basin sub-unit polygons
+#' @param shape_file Shape file with the basin sub-unit polygons or path to the
+#'   file
 #' @param shape_index Name of the column in the basin shapefile attribute table
 #'   that provides the indices of the basin subunits
 #' @param var_label Name of the variable array to be extracted from the ncdf
@@ -17,8 +18,8 @@
 #' @importFrom magrittr %>% %<>%  set_colnames
 #' @importFrom ncdf4 nc_close nc_open ncatt_get ncvar_get
 #' @importFrom purrr array_branch map
-#' @importFrom sf st_area st_bbox st_intersection st_polygon st_set_agr st_sf
-#'   st_sfc st_transform
+#' @importFrom sf read_sf st_area st_as_sf st_bbox st_intersection st_polygon
+#'   st_set_agr st_sf st_sfc st_transform
 #' @importFrom tibble add_column as_tibble
 #'
 #' @return Returns a tibble that provides the time series of the aggregated
@@ -84,8 +85,15 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
     lat_up:lat_lw
   }
 
+  ## Load shape file if path to the file is provided, else Convert shape file to
+  ## a simple feature object
+  if(is.character(shape_file)){
+    shape_file %<>% read_sf(., quiet = TRUE)
+  }
+  # Convert shape file to a simple feature object
+  shape_file %<>% st_as_sf(.)
   ## Transform the shape file to the same reference system as the ncdf
-  shape_trans <- st_transform(basin_shp, crs = crs_ncdf)
+  shape_trans <- st_transform(shape_file, crs = crs_ncdf)
   ## extract the extent (boundary box) of the transformed shape file
   bbox_trans <- st_bbox(shape_trans)
 

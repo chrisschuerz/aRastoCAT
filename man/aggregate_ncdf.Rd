@@ -12,7 +12,8 @@ aggregate_ncdf(ncdf_file, crs_ncdf, shape_file, shape_index, var_label,
 
 \item{crs_ncdf}{Current reference system of ncdf file}
 
-\item{shape_file}{Shape file with the basin sub-unit polygons}
+\item{shape_file}{Shape file with the basin sub-unit polygons or path to the
+file}
 
 \item{shape_index}{Name of the column in the basin shapefile attribute table
 that provides the indices of the basin subunits}
