@@ -1,6 +1,6 @@
 #' Aggregate NCDF Climate (Raster) Data for Catchment Subbasins
 #'
-#' @param ncdf_path Path to the ncdf file
+#' @param ncdf_file Path to the ncdf file
 #' @param crs_ncdf Current reference system of ncdf file
 #' @param shape_file Shape file with the basin sub-unit polygons
 #' @param shape_index Name of the column in the basin shapefile attribute table
@@ -25,15 +25,15 @@
 #'   variable for the respective basin subunits
 #' @export
 
-aggregate_ncdf <- function(ncdf_path, crs_ncdf, shape_file, shape_index,
+aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
                            var_label, lat_label = "lat", lon_label = "lon",
                            time_label = "time") {
 
   #-----------------------------------------------------------------------------
   # Extract and modify the variable array, the lat/lon matrices and the time
   # vector from the NCDF file
-  ## Open the NCDF file located in the ncdf_path
-  nc_file <- nc_open(filename = ncdf_path)
+  ## Open the NCDF file located in the ncdf_file
+  nc_file <- nc_open(filename = ncdf_file)
 
   ## Function to rotate a matrix 90° counter clockwise
   rotate_cc <- function(mtr) { mtr %>% t(.) %>% apply(., 2, rev)}
