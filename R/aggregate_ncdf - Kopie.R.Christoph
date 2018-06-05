@@ -6,8 +6,6 @@
 #'   file
 #' @param shape_index Name of the column in the basin shapefile attribute table
 #'   that provides the indices of the basin subunits
-#' @param first.year Start year from NetCDF, from which the data should be extracted
-#' @param last.year End year from NetCDF, until which the data should be extracted
 #' @param var_label Name of the variable array to be extracted from the ncdf
 #'   file
 #' @param lat_label Name of the latitude matrix in the ncdf file
@@ -23,14 +21,13 @@
 #' @importFrom sf read_sf st_area st_as_sf st_bbox st_crs st_intersection
 #'   st_polygon st_set_agr st_sf st_sfc st_transform
 #' @importFrom tibble add_column as_tibble
-#' @importFrom chron
+#'
 #' @return Returns a tibble that provides the time series of the aggregated
 #'   variable for the respective basin subunits
 #' @export
 
 aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
-                           first.year = NULL, last.year = NULL, var_label,
-                           lat_label = "lat", lon_label = "lon",
+                           var_label, lat_label = "lat", lon_label = "lon",
                            time_label = "time") {
 
   #-----------------------------------------------------------------------------
@@ -44,101 +41,28 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
 
   ## Read the matrices providing the latitude and longitude for the data points
   ## and rotate them by 90° clockwise
+  lat <- ncvar_get(nc_file,lat_label) %>%
+    rotate_cc(.)
 
-  nlon <- dim(ncvar_get(nc_file,lon_label))
-  nlat <- dim(ncvar_get(nc_file,lat_label))
-
-  lat <- ncvar_get(nc_file,lat_label)
-  lon <- ncvar_get(nc_file,lon_label)
-
-  if(length(dim(lat)) == 1) {
-
-    lat <- matrix(data = rep(lat, times = nlon), nrow = nlat, ncol = nlon) %>% apply(., 2, rev)
-    lon <- matrix(data = rep(lon, times = nlat), nrow = nlat, ncol = nlon, byrow = TRUE) %>% apply(., 2, rev)
-
-  } else {
-
-  lat <- rotate_cc(lat)
-  lon <- rotate_cc(lon)
-
-  }
-
-  ## calculate indices to extract data for a specific period (defined via start.year and end.year)
-  # Basis: https://github.com/RetoSchmucki/Rpackages/blob/master/climateExtract/R/climateExtract.R
-
-
-  day_vals <- ncdf4::ncvar_get(nc_file, time_label)
-  day_since <- ncdf4::ncatt_get(nc_file, time_label)$units
-
-  init_year <-
-    as.numeric(strsplit(unlist(strsplit(
-      gsub('days since ', '', day_since), '-', fixed = TRUE
-    )), ' ', fixed = TRUE)[[1]][1])
-  init_month <-
-    as.numeric(strsplit(unlist(strsplit(
-      gsub('days since ', '', day_since), '-', fixed = TRUE
-    )), ' ', fixed = TRUE)[[2]][1])
-  init_day <-
-    as.numeric(strsplit(unlist(strsplit(
-      gsub('days since ', '', day_since), '-', fixed = TRUE
-    )), ' ', fixed = TRUE)[[3]][1])
-
-  avg_temp_transect <- data.frame(julianday = day_vals)
-  avg_temp_transect$day <-
-    chron::month.day.year(avg_temp_transect$julianday,
-                          c(month = init_month, day = init_day, year = init_year))$day
-  avg_temp_transect$month <-
-    chron::month.day.year(avg_temp_transect$julianday,
-                          c(month = init_month, day = init_day, year = init_year))$month
-  avg_temp_transect$year <-
-    chron::month.day.year(avg_temp_transect$julianday,
-                          c(month = init_month, day = init_day, year = init_year))$year
-
-  # if no start or end year is defined, use min/max of time series
-  if (is.null(first.year)) {
-    first.year <- min(avg_temp_transect$year)
-  }
-  if (is.null(last.year)) {
-    last.year <- max(avg_temp_transect$year)
-  }
-
-  first.month <-
-    head(avg_temp_transect$month[avg_temp_transect$year == first.year], 1)
-  first.day <-
-    head(avg_temp_transect$day[avg_temp_transect$year == first.year], 1)
-  last.month <-
-    tail(avg_temp_transect$month[avg_temp_transect$year == last.year], 1)
-  last.day <-
-    tail(avg_temp_transect$day[avg_temp_transect$year == last.year], 1)
-
-  firstday <-
-    avg_temp_transect$julianday[avg_temp_transect$day == first.day &
-                                  avg_temp_transect$month == first.month &
-                                  avg_temp_transect$year == first.year]
-
-  lastday <-
-    avg_temp_transect$julianday[avg_temp_transect$day == last.day &
-                                  avg_temp_transect$month == last.month &
-                                  avg_temp_transect$year == last.year]
+  lon <- ncvar_get(nc_file,lon_label) %>%
+    rotate_cc(.)
 
   ## Read the array for the variable holding the data for each lat/lon point and
   ## time step. Rotate it as done with lat/lon and save all matrices for the
   ## individual timesteps in a list
-  var_data <-
-    ncvar_get(nc_file,
-              var_label,
-              start = c(1, 1, which(day_vals == firstday)),
-              count = c(nlon, nlat, (lastday - firstday) + 2)) %>%
+  var_data <- ncvar_get(nc_file,var_label) %>%
     array_branch(., margin = 3) %>%
     map(.,  rotate_cc)
 
+  ## Read the time series vector from the NCDF file
+  time <- ncvar_get(nc_file, time_label)
 
-  ## update time series vector based on user input
-  time <- seq(from = 0, to = (lastday - firstday) + 1, by = 1)
-
-  ## generate new initial date
-  t_0 <- paste(first.year, first.month, first.day, sep = "-") %>%
+  ## The NCDF must contain an initial time step. Read the initial time step from
+  ## the NCDF
+  t_0 <- ncatt_get(nc_file, time_label,"units")$value %>%
+    gsub("days since |seconds since ", "", .) %>%
     as.Date()
+
   ## Close the connection to the NCDF file after aqcuiring all requiered data.
   nc_close(nc_file)
 
