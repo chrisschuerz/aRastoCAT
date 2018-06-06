@@ -102,6 +102,18 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
     last.year <- max(avg_temp_transect$year)
   }
 
+  if (first.year < min(avg_temp_transect$year)) {
+    first.year <- min(avg_temp_transect$year)
+    print("Warning: first.year is lower than minimum year in data. First year in data is used.")
+  }
+
+  if (last.year > max(avg_temp_transect$year)) {
+    last.year <- max(avg_temp_transect$year)
+    print("Warning: last.year is higher than last year in data. Last year in data is used.")
+    print("Warning: last.year changed to:")
+    print(last.year)
+  }
+
   first.month <-
     head(avg_temp_transect$month[avg_temp_transect$year == first.year], 1)
   first.day <-
@@ -128,13 +140,13 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
     ncvar_get(nc_file,
               var_label,
               start = c(1, 1, which(day_vals == firstday)),
-              count = c(nlon, nlat, (lastday - firstday) + 2)) %>%
+              count = c(nlon, nlat, (lastday - firstday) + 1)) %>%
     array_branch(., margin = 3) %>%
     map(.,  rotate_cc)
 
 
   ## update time series vector based on user input
-  time <- seq(from = 0, to = (lastday - firstday) + 1, by = 1)
+  time <- seq(from = 0, to = (lastday - firstday), by = 1)
 
   ## generate new initial date
   t_0 <- paste(first.year, first.month, first.day, sep = "-") %>%
