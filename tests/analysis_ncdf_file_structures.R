@@ -95,62 +95,7 @@ unld_t_0 <- ncatt_get(unld_rr, "time","units")$value %>%
   as_date(.)
 
 
-find_latlon <- function(nc_file) {
-  var_name <- names(nc_file$var)
-  long_name <- map(nc_file$var, ~.x$longname)
-  var_name_lat <- var_name[grepl(pattern = "latitude", tolower(long_name))]
-  var_name_lon <- var_name[grepl(pattern = "longitude", tolower(long_name))]
-  if(xor(length(var_name_lat) == 0, length(var_name_lon) == 0)) {
-    stop("Only one of the two variables 'lat'/'lon' identified. Please check manually!")
-  }
-  if(length(var_name_lat) == 0) {
-    return(NULL)
-    warning("No 'lat'/'lon' variables identified. Using 'x' and 'y' dimensions instead."%&%
-            "If 'lat'/'lon' variables should exist, define them manually!")
-  } else {
-    return(c(var_name_lat, var_name_lon))
-  }
-}
 
-find_latlon(spat_rr)
-find_latlon(sprb_rr)
-find_latlon(eobs_rr)
-find_latlon(unld_rr)
-
-fetch_latlon <- function(nc_file, latlon_name) {
-  if(is.null(latlon_name)){
-    latlon_name <- find_latlon(nc_file)
-    if(is.null(latlon_name)){
-      xy_names <- names(nc_file$dim)[names(nc_file$dim) %in% c("x", "y")]
-      if(length(xy_names) != 2){
-        stop("Finding 'x' and 'y' dimensions was not successful")
-      }
-      dim_y <- ncvar_get(nc_file, "y")
-      dim_x <- ncvar_get(nc_file, "x")
-      lat <- matrix(rep(dim_y, length(dim_x)),
-                    nrow = length(dim_y),
-                    ncol = length(dim_x))
-      lon <- matrix(rep(dim_x, length(dim_y)),
-                    nrow = length(dim_x),
-                    ncol = length(dim_y)) %>%
-        rotate_cc(.)
-    } else {
-      lat <- ncvar_get(nc_file,latlon_name[1]) %>%
-        rotate_cc(.)
-
-      lon <- ncvar_get(nc_file, latlon_name[2]) %>%
-        rotate_cc(.)
-    }
-
-  } else {
-    lat <- ncvar_get(nc_file,latlon_name[1]) %>%
-      rotate_cc(.)
-
-    lon <- ncvar_get(nc_file, latlon_name[2]) %>%
-      rotate_cc(.)
-  }
-  return(list(lat = lat, lon = lon))
-}
 
 unld_ll <- fetch_latlon(unld_rr, NULL)
 spat_ll <- fetch_latlon(spat_rr, NULL)
