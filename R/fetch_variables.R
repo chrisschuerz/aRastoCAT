@@ -111,6 +111,14 @@ fetch_time <- function(nc_file) {
   return(time_span)
 }
 
+## Read the array for the variable holding the data for each lat/lon point and
+## time step. Rotate it as done with lat/lon and save all matrices for the
+## individual timesteps in a list
+var_data <- ncvar_get(nc_file,var_label) %>%
+  array_branch(., margin = 3) %>%
+  map(.,  rotate_cc)
+
+
 ## Function to rotate a matrix 90° counter clockwise
 #' Rotate matrix 90° counter clockwise
 #'

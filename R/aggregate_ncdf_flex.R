@@ -30,112 +30,42 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
                            var_name = NULL, latlon_name = NULL,
                            time_range = NULL) {
 
-  #-----------------------------------------------------------------------------
-  # Extract and modify the variable array, the lat/lon matrices and the time
-  # vector from the NCDF file
+  # Load shape file if path to the file is provided, else Convert shape file to
+  # a simple feature object
+  if(is.character(shape_file)){
+    shape_file <-  read_sf(shape_file, quiet = TRUE)
+  }
+  ## Convert shape file to a simple feature object
+  shape_file <-  st_as_sf(shape_file)
+  ## Transform the shape file to the same reference system as the ncdf
+  shape_trans <- st_transform(shape_file, crs = crs_ncdf)
+  ## extract the extent (boundary box) of the transformed shape file
+  bbox_trans <- st_bbox(shape_trans)
+
+#-------------------------------------------------------------------------------
+  # Extract the lat lon matrices and the time vector and reduce their extents
+  # according to the shape file boundary and the provided time_range. Get the
+  # row/col indices of the trimmed matrices and the time vector for reducing the
+  # extent of the data array in the following reading step
   ## Open the NCDF file located from the path ncdf_file
   nc_file <- nc_open(filename = ncdf_file)
 
   ## Fetch the lat lon variables. lat and lon are always returned as matrices
   ## with the x/y dimensions of the data.
   lat_lon <- fetch_latlon(nc_file, latlon_name)
+  ## Reduce the extent of the lat lon matrices according to the boundary of the
+  ## shape file
+  lat_lon_trim <- trim_latlon(lat_lon[[1]], lat_lon[[2]], bbox_trans)
+  ## Get the indices of the trimmed matrices in the original matrices for
+  ## reducing the extent of the data array to read
+  lat_lon_index <- get_latlonindex(lat_lon, lat_lon_trim)
 
   ## Fetch the time variable.
   time <- fetch_time(nc_file)
   ## Limit time period to provided time_range
-  time_range <- as_date(time_range)
-  time_ind <- c(which(time >= time_range[1])[1],which(time > time_range[2])[1])
-  time <- time[time_ind[1]:time_ind[2]]
+  time <- trim_time(time, time_range)
 
-  ## Read the array for the variable holding the data for each lat/lon point and
-  ## time step. Rotate it as done with lat/lon and save all matrices for the
-  ## individual timesteps in a list
-  var_data <- ncvar_get(nc_file,var_label) %>%
-    array_branch(., margin = 3) %>%
-    map(.,  rotate_cc)
-
-  ## Read the time series vector from the NCDF file
-  time <- ncvar_get(nc_file, time_label)
-
-  ## The NCDF must contain an initial time step. Read the initial time step from
-  ## the NCDF
-  t_0 <- ncatt_get(nc_file, time_label,"units")$value %>%
-    gsub("days since |seconds since ", "", .) %>%
-    as.Date()
-
-  ## Close the connection to the NCDF file after aqcuiring all requiered data.
-  nc_close(nc_file)
-
-  #-----------------------------------------------------------------------------
-  # Reduce the extent of the provided NCDF data set to the extent of the provided
-  # shape file after transforming it to the reference system of the NCDF
-  ## Function to find the indices of the longitude matrix that covers c(xmin,
-  ## xmax) of the shape file extent
-  limit_lon <- function(lon, bbox){
-    lon_lf <- which(colSums(lon < bbox[1]) == nrow(lon)) %>% .[length(.)]
-    lon_rg <- which(colSums(lon > bbox[3]) == nrow(lon)) %>% .[1]
-    lon_lf:lon_rg
-  }
-
-  ## Function to find the indices of the latitude matrix that covers c(ymin,
-  ## ymax) of the shape file extent
-  limit_lat <- function(lat, bbox){
-    lat_lw <- which(rowSums(lat < bbox[2]) == ncol(lat)) %>% .[1]
-    lat_up <- which(rowSums(lat > bbox[4]) == ncol(lat)) %>% .[length(.)]
-    lat_up:lat_lw
-  }
-
-  ## Load shape file if path to the file is provided, else Convert shape file to
-  ## a simple feature object
-  if(is.character(shape_file)){
-    shape_file %<>% read_sf(., quiet = TRUE)
-  }
-  # Convert shape file to a simple feature object
-  shape_file %<>% st_as_sf(.)
-  ## Transform the shape file to the same reference system as the ncdf
-  shape_trans <- st_transform(shape_file, crs = crs_ncdf)
-  ## extract the extent (boundary box) of the transformed shape file
-  bbox_trans <- st_bbox(shape_trans)
-
-  ## If the lat/lon system represented in the lat/lon matrices is curved the
-  ## limitation of the extent to the one of the shape file is solved
-  ## iteratively
-  ## Save the intitial dimensions of the lat/lon matrices for later checkup
-  dim_init <- dim(lat)
-
-  ## Set initial values for iterative step
-  iter_check <- TRUE
-  ind_lat_prev <- 0
-  ind_lon_prev <- 0
-
-  ## Iterate over the indices of the lat/lon matrices until the final dimensions
-  ## of the matrices do not change anymore.
-  while(iter_check){
-    ### Find the indices of along lat and long that fully cover the shape file
-    ### extent.
-    ind_lat <- limit_lat(lat, bbox_trans)
-    ind_lon <- limit_lon(lon, bbox_trans)
-
-    ### Check for the first run if shape file is inside the exntent of the
-    ### matrices
-    if(all(dim(lat) == dim(dim_init))){
-      if(!all(ind_lat %in% (1:dim_init[1])) &
-         !all(ind_lon %in% (1:dim_init[2]))){
-        stop("Basin shape too close to any of the grid boundaries!")
-      }
-    }
-
-    ### Trim the lat/lon matrices
-    lat <- lat[ind_lat, ind_lon]
-    lon <- lon[ind_lat, ind_lon]
-    var_data <- map(var_data, function(mtr){mtr[ind_lat, ind_lon]})
-
-    ### Check if the dimensions are stable
-    iter_check <-  ((sum(ind_lat) != sum(ind_lat_prev)) |
-                      (sum(ind_lon) != sum(ind_lon_prev)))
-    ind_lat_prev <- ind_lat
-    ind_lon_prev <- ind_lon
-  }
+#-------------------------------------------------------------------------------
 
   ## Trim the data array to the same extent lik the lat/lon matrices and create
   ## a tibble where each column is one time step. Add the indices of the
@@ -146,6 +76,12 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
     as_tibble() %>%
     set_colnames("timestep"%_%1:ncol(.)) %>%
     add_column(., idx = 1:nrow(.), .before = 1)
+
+#-------------------------------------------------------------------------------
+  # Close the connection to the NCDF file after aqcuiring all requiered data.
+  nc_close(nc_file)
+
+#-------------------------------------------------------------------------------
 
   # Create a polygon grid from the lat/lon matrices, that is used for
   # intersecting with the subunits of the provided shape file.
