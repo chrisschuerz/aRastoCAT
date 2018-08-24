@@ -114,7 +114,35 @@ fetch_time <- function(nc_file) {
 ## Read the array for the variable holding the data for each lat/lon point and
 ## time step. Rotate it as done with lat/lon and save all matrices for the
 ## individual timesteps in a list
-var_data <- ncvar_get(nc_file,var_label) %>%
+fetch_var <- function(nc_file, var_name, lat_lon_ind, time_ind) {
+  ## If no variable name is provided, the first variable is selected
+  if(is.null(var_name)) var_name <- names(nc_file$var)[1]
+  n_dim <- nc_file$var[[var_name]]$ndims
+  if(n_dim == 3){
+    start_ind <- c(lat_lon_ind$start, time_ind$start)
+    count_ind <- c(lat_lon_ind$count, time_ind$count)
+  } else {
+    start_ind <- lat_lon_ind$start
+    count_ind <- lat_lon_ind$count
+  }
+  var_data <- ncvar_get(nc = nc_file, varid = var_name,
+                        start = start_ind, count = count_ind)
+
+  count_ind <- c(10,1,10)
+
+
+  if(count_ind[3] > 1) {
+    array_margin <- case_when(all(count_ind[1:2] == 1) ~ 1,
+                              any(count_ind[1:2] == 1) ~ 2,
+                              all(count_ind[1:2] != 1) ~ 3)
+    var_data <- var_data %>%
+      array_branch(., margin = array_margin) %>%
+      map(., ~as.matrix(.x, count_ind[1], count_ind[2])) %>%
+      map(.,  rotate_cc)
+  }
+
+}
+
   array_branch(., margin = 3) %>%
   map(.,  rotate_cc)
 

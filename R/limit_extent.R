@@ -60,10 +60,10 @@ trim_latlon <- function(lat, lon, bbox) {
 }
 
 get_latlonindex <- function(lat_lon, lat_lon_trim) {
-  dim_trim <- dim(lat_lon_trim[[1]])
+  dim_trim <- dim(lat_lon_trim[[1]])[2:1]
   start_ind <- which((lat_lon[[1]] == lat_lon_trim[[1]][1,1]) &
                      (lat_lon[[2]] == lat_lon_trim[[2]][1,1]),
-                     arr.ind = TRUE)
+                     arr.ind = TRUE)[2:1]
   return(list(start = start_ind, count = dim_trim))
 }
 
