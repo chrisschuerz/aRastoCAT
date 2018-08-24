@@ -1,6 +1,6 @@
 #' Fetch the laitude and longitude variables and convert to matrices
 #'
-#' @param nc_file Opnened ncdf file
+#' @param nc_file Opened ncdf file
 #' @param latlon_name Character vector of length 2. Names of latitude longitude
 #'   variables (if provided)
 #'
@@ -47,7 +47,7 @@ fetch_latlon <- function(nc_file, latlon_name) {
 
 #' Automatically find latitude and longitude variables
 #'
-#' @param nc_file Opnened ncdf file
+#' @param nc_file Opened ncdf file
 #'
 #' @importFrom purrr map
 #'
@@ -70,10 +70,46 @@ find_latlon <- function(nc_file) {
   }
 }
 
+#' Fetch the date vector from the ncdf file if provided
+#'
+#' @param nc_file Opened ncdf file
+#'
+#' @importFrom dplyr %>%
+#' @importFrom lubridate as_date duration
+#' @importFrom ncdf ncatt_get ncvar_get
+#'
+#' @return Returns a vector of length 2 givong the names of the lat/lon variables
+#' @keywords internal
+#'
+fetch_time <- function(nc_file) {
+  if("time" %in% names(nc_file$dim)){
+    ## Read the time intervals vector from the ncdf file
+    time <- ncvar_get(nc_file, "time")
 
+    ## Read the attributes of the time vector
+    time_attr <- ncatt_get(nc_file, "time", "units")$value
 
+    if(time_attr != 0) {
+      time_init <- time_attr %>%
+        gsub("days since |seconds since ", "", .) %>%
+        as_date(.)
 
+      time_inter <- time_attr %>%
+        strsplit(., " ") %>%
+        unlist(.) %>%
+        .[1]
 
+      time_span <- time_init + duration(num = time, units = time_inter)
+    } else {
+      time_span <- time
+      warning("Dimension 'time' has no attributes. Time returned as numeric vector!")
+    }
+  } else {
+    time_span <- NULL
+    warning("No 'time' dimension found. Results are returned without a date")
+  }
+  return(time_span)
+}
 
 ## Function to rotate a matrix 90° counter clockwise
 #' Rotate matrix 90° counter clockwise
