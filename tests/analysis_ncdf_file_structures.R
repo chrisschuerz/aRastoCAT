@@ -79,7 +79,7 @@ unld_rr_path <- "D:/MetData/UnLoadC3/pr_bc_EUR-11_CNRM-CERFACS-CNRM-CM5_historic
 
 unld_rr <- nc_open(unld_rr_path)
 
-unld_data <- ncvar_get(unld_rr,"RR") %>%
+unld_data <- ncvar_get(unld_rr,"pr", start = c(1,1,100), count = c(-1,-1,1))
   array_branch(., margin = 3) %>%
   map(.,  rotate_cc)
 

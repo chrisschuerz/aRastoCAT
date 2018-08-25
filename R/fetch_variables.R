@@ -125,26 +125,32 @@ fetch_var <- function(nc_file, var_name, lat_lon_ind, time_ind) {
     start_ind <- lat_lon_ind$start
     count_ind <- lat_lon_ind$count
   }
+
   var_data <- ncvar_get(nc = nc_file, varid = var_name,
                         start = start_ind, count = count_ind)
-
-  count_ind <- c(10,1,10)
-
 
   if(count_ind[3] > 1) {
     array_margin <- case_when(all(count_ind[1:2] == 1) ~ 1,
                               any(count_ind[1:2] == 1) ~ 2,
                               all(count_ind[1:2] != 1) ~ 3)
-    var_data <- var_data %>%
-      array_branch(., margin = array_margin) %>%
-      map(., ~as.matrix(.x, count_ind[1], count_ind[2])) %>%
-      map(.,  rotate_cc)
+
+    var_data <- array_branch(var_data, margin = array_margin)
+  } else {
+    var_data <- list(var_data)
   }
 
+    if(all(count_ind[1:2] != 1)) {
+      var_data <- map(var_data, rotate_cc)
+    } else if (count_ind[1] == 1) {
+      var_data <- var_data %>%
+        map(., rev) %>%
+        map(., ~matrix(.x, nrow = count_ind[2], ncol = count_ind[1]))
+    } else if(count_ind[2] == 1) {
+      var_data <- var_data %>%
+        map(., ~matrix(.x, nrow = count_ind[2], ncol = count_ind[1]))
+    }
+  return(var_data)
 }
-
-  array_branch(., margin = 3) %>%
-  map(.,  rotate_cc)
 
 
 ## Function to rotate a matrix 90° counter clockwise

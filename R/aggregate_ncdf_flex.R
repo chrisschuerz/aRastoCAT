@@ -66,6 +66,8 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
   time <- trim_time(time, time_range)
 
 #-------------------------------------------------------------------------------
+  # Fetch the array for the variable of interest and convert to list of matrices
+  var_data <- fetch_var(nc_file, var_name, lat_lon_index, time_index)
 
   ## Trim the data array to the same extent lik the lat/lon matrices and create
   ## a tibble where each column is one time step. Add the indices of the
