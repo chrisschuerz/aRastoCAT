@@ -67,17 +67,7 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
 
 #-------------------------------------------------------------------------------
   # Fetch the array for the variable of interest and convert to list of matrices
-  var_data <- fetch_var(nc_file, var_name, lat_lon_index, time_index)
-
-  ## Trim the data array to the same extent lik the lat/lon matrices and create
-  ## a tibble where each column is one time step. Add the indices of the
-  ## remaining pixels for later data extraction.
-  var_data %<>%
-    map(., as.vector) %>%
-    do.call(cbind, .) %>%
-    as_tibble() %>%
-    set_colnames("timestep"%_%1:ncol(.)) %>%
-    add_column(., idx = 1:nrow(.), .before = 1)
+  var_data <- fetch_var(nc_file, var_name, lat_lon_index, time[[2]])
 
 #-------------------------------------------------------------------------------
   # Close the connection to the NCDF file after aqcuiring all requiered data.
@@ -85,82 +75,9 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
 
 #-------------------------------------------------------------------------------
 
-  # Create a polygon grid from the lat/lon matrices, that is used for
-  # intersecting with the subunits of the provided shape file.
-  ## Function to calculate the mid point between four lat/lon points to derive
-  ## the corner points of the polygon grid cells.
-  calc_corner <- function(ind, mtr) {
-    mean(mtr[ind[1]:(ind[1] + 1), ind[2]:(ind[2] + 1)])}
+  var_grid <- create_polygon_grid(var_data, lat_lon_trim, shape_file, crs_ncdf)
 
-  ## Function to extrapolate the corner points of the grid in longitude
-  extrapol_col <- function(mtr){
-    n_col <- ncol(mtr)
-    cbind(mtr[ , 1] + (mtr[ , 1] - mtr[ , 2]),
-          mtr,
-          mtr[ , n_col] + (mtr[ , n_col] - mtr[, n_col - 1]))
-  }
-
-  ## Function to extrapolate the corner points of the grid in latitude
-  extrapol_row <- function(mtr){
-    n_row <- nrow(mtr)
-    rbind(mtr[1, ] + (mtr[1, ] - mtr[2, ]),
-          mtr,
-          mtr[n_row, ] + (mtr[n_row, ] - mtr[n_row - 1, ]))
-  }
-
-  ## Function to derive a list of tables, where each table holds the coordinates
-  ## that describe the path around a cell of the polygon grid.
-  extract_poly_coord <- function(ind, lat, lon){
-    cbind(c(lon[ind[1]    , ind[2]],
-            lon[ind[1]    , ind[2] + 1],
-            lon[ind[1] + 1, ind[2] + 1],
-            lon[ind[1] + 1, ind[2]],
-            lon[ind[1]    , ind[2]]),
-          c(lat[ind[1]    , ind[2]],
-            lat[ind[1]    , ind[2] + 1],
-            lat[ind[1] + 1, ind[2] + 1],
-            lat[ind[1] + 1, ind[2]],
-            lat[ind[1]    , ind[2]]))
-  }
-
-  ## Derive the dimensions of the trimmed matrices
-  rst_dim <- dim(lat)
-
-  ## Create all combinations of x/y of the matrice indices
-  rst_ind <- expand.grid(1:(rst_dim[1]), 1:(rst_dim[2]))
-
-  ## Create a reduced set of index combinations required for the corner point
-  ## calculation
-  pnt_ind <- expand.grid(1:(rst_dim[1] - 1), 1:(rst_dim[2] - 1))
-
-  ## Calculate the longitude values of all corner points and extrapolate the
-  ## values at the outer rows and columns
-  lon_corner <- apply(pnt_ind, 1, calc_corner, lon) %>%
-    matrix(., nrow = rst_dim[1] - 1, ncol = rst_dim[2] - 1) %>%
-    extrapol_row(.) %>%
-    extrapol_col(.)
-
-  ## Calculate the latitude values of all corner points and extrapolate the
-  ## values at the outer rows and columns
-  lat_corner <- apply(pnt_ind, 1, calc_corner, lat) %>%
-    matrix(., nrow = rst_dim[1] - 1, ncol = rst_dim[2] - 1) %>%
-    extrapol_row(.) %>%
-    extrapol_col(.)
-
-  ## Convert the index combinations of the matrices into a list for application
-  ## in the polygon grid definition
-  ind_list <- as.list(as.data.frame(t(rst_ind)))
-
-  ## Generate the polygon grid as a simple feature object and add the cell
-  ## indices as in the variable data table
-  var_grid <- map(ind_list, extract_poly_coord, lat_corner, lon_corner) %>%
-    map(., function(poly_i){st_polygon(x = list(poly_i), dim = "XY")}) %>%
-    st_sfc(., crs = crs_ncdf) %>%
-    st_sf(idx = 1:nrow(var_data), geometry = .) %>%
-    st_transform(., st_crs(shape_file)) %>%
-    st_set_agr(., "constant") #Assumption of constant attributes to avoid warnings
-
-  #-----------------------------------------------------------------------------
+#-----------------------------------------------------------------------------
   # Intersect the shape file with the genereated polygon grid and calculate area
   # weighted averages of each times step in the data for the individual subunits
   # in the shape file
@@ -170,26 +87,38 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
     as_tibble(.) %>%
     mutate(area = st_area(geometry) %>% as.numeric(.))  # Calculate the area of each itersection
 
-  data_aggregate <- tibble(shape_index = grid_intersect[[shape_index]],
+  data_aggregate <- tibble(index = grid_intersect[[shape_index]],
                            idx         = grid_intersect$idx,
                            area_fract  = grid_intersect$area) %>%
-    group_by(shape_index) %>%
+    group_by(index) %>%
     mutate(area_fract = area_fract/sum(area_fract)) %>% # Calculate fractions of areas
     left_join(., var_data, by = "idx") %>% # Jion with variable data
-    mutate_at(vars(starts_with("time")), funs(.*area_fract)) %>%  # multiply all timesteps with area fraction
-    select(-idx, -area_fract) %>%
+    multiply_by_fraction(.) %>%
     summarise_all(funs(sum)) %>% # Sum up the fractions for all shape sub units
     ungroup(.) %>%
-    select(-shape_index) %>%
-    t(.) %>% # Change format to column = Shape sub unit, row = time step
-    as_tibble(.) %>%
-    set_colnames(shape_index%_%1:ncol(.)) %>%
-    add_column(year = year(t_0 + time), # Add date to the table
-               mon  = month(t_0 + time),
-               day  = day(t_0 + time),
-               hour = hour(t_0 + time),
-               min  = minute(t_0 + time),
-               .before = 1)
+    mutate(., index = shape_index%_%index) %>%
+    transpose_tbl(., name_col = "index") %>%
+    add_column(., date = time$time, .before = 1)
+
 
     return(data_aggregate)
+}
+
+multiply_by_fraction <- function(tbl) {
+  data <- tbl %>% ungroup() %>% select(starts_with("timestep"))
+  fract <- tbl$area_fract
+  data %>%
+    map_dfc(., ~.x*fract) %>%
+    bind_cols(tbl %>% select(index),.) %>%
+    group_by(index)
+}
+
+transpose_tbl <- function(tbl, name_col) {
+  col_names <- tbl[[name_col]]
+  tbl <- tbl %>%
+    select(-matches(name_col)) %>%
+    t(.) %>%
+    as_tibble(.) %>%
+    set_names(., col_names)
+  return(tbl)
 }

@@ -139,16 +139,19 @@ fetch_var <- function(nc_file, var_name, lat_lon_ind, time_ind) {
     var_data <- list(var_data)
   }
 
-    if(all(count_ind[1:2] != 1)) {
-      var_data <- map(var_data, rotate_cc)
-    } else if (count_ind[1] == 1) {
-      var_data <- var_data %>%
-        map(., rev) %>%
-        map(., ~matrix(.x, nrow = count_ind[2], ncol = count_ind[1]))
-    } else if(count_ind[2] == 1) {
-      var_data <- var_data %>%
-        map(., ~matrix(.x, nrow = count_ind[2], ncol = count_ind[1]))
-    }
+  if(any(count_ind[1:2] == 1)) {
+    var_data <- map(var_data, ~matrix(.x, nrow = count_ind[2],
+                                          ncol = count_ind[1]))
+  }
+
+  var_data <- var_data %>%
+    map(., rotate_cc) %>%
+    map(., as.vector) %>%
+    bind_cols() %>%
+    as_tibble() %>%
+    set_names("timestep"%_%1:ncol(.)) %>%
+    add_column(., idx = 1:nrow(.), .before = 1)
+
   return(var_data)
 }
 
