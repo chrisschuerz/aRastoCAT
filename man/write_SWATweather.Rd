@@ -42,4 +42,3 @@ Writes Weather input files for a SWAT2012 model
 \description{
 Write SWAT weather input from aggregated climate variable time series
 }
-

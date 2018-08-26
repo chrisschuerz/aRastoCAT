@@ -33,7 +33,7 @@ aggregate_variable <- function(var_grid, var_data,
                            area_fract  = grid_intersect$area) %>%
     group_by(index) %>%
     mutate(area_fract = area_fract/sum(area_fract)) %>% # Calculate fractions of areas
-    left_join(., var_data, by = "idx") %>% # Jion with variable data
+    left_join(., var_data, by = "idx") %>% # Join with variable data
     multiply_by_fraction(.) %>%
     summarise_all(funs(sum)) %>% # Sum up the fractions for all shape sub units
     ungroup(.) %>%

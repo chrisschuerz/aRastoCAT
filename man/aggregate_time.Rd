@@ -27,4 +27,3 @@ Returns an aggregated time series tibble
 \description{
 Aggregate time series derived from climate raster aggregation
 }
-

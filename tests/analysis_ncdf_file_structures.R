@@ -1,104 +1,35 @@
-#-------------------------------------------------------------------------------
-# Evaluation of different ncdf formats and fixes for aRastoCAT
-#-------------------------------------------------------------------------------
-library(ncdf4)
-library(tidyverse)
-library(lubridate)
 
-rotate_cc <- function(mtr) { mtr %>% t(.) %>% apply(., 2, rev)}
+crs_ncdf <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+shp_raab <- "D:/r_project/aRastoCAT/inst/extdata/basin_demo.shp"
 
-# Open different available ncdf files and do initial check of structure:
 ## Spartacus_AT
 spat_rr_path <- "D:/MetData/Spartacus_AT/RR/RR1961.nc"
-
-spat_rr <- nc_open(spat_rr_path)
-
-spat_data <- ncvar_get(spat_rr,"RR") %>%
-  array_branch(., margin = 3) %>%
-  map(.,  rotate_cc)
-
-spat_lat <- ncvar_get(spat_rr,"lat") %>%
-  rotate_cc(.)
-
-spat_lon <- ncvar_get(spat_rr,"lon") %>%
-  rotate_cc(.)
-
-time <- ncvar_get(spat_rr, "time")
-t_0 <- ncatt_get(spat_rr, "time","units")$value %>%
-  gsub("[[:alpha:]]", "", .) %>%
-  as_date(.)
-## Spartacus_AT contains lat/lon in wgs84 matrix OK!, date date vector OK!
+spat_tbl <- aggregate_ncdf(ncdf_file = spat_rr_path, crs_ncdf = crs_ncdf,
+                           shape_file = shp_raab, shape_index = "Subbasin",
+                           time_range = c("1961-01-01", "1961-12-31"))
 
 ## Spartacus_Raab
 sprb_rr_path <- "D:/MetData/Spartacus_Raab/RR/RR_19610101.nc"
-
-sprb_rr <- nc_open(sprb_rr_path)
-
-sprb_data <- ncvar_get(sprb_rr,"RR") %>%
-  array_branch(., margin = 3) %>%
-  map(.,  rotate_cc)
-
-sprb_lat <- ncvar_get(sprb_rr,"y") %>%
-  rotate_cc(.)
-
-sprb_lon <- ncvar_get(sprb_rr,"x") %>%
-  rotate_cc(.)
-
-sprb_time <- ncvar_get(sprb_rr, "time")
-sprb_t_0 <- ncatt_get(sprb_rr, "time","units")$value %>%
-  gsub("[[:alpha:]]", "", .) %>%
-  as_date(.)
-## Spartacus_Raab has only one date, no lat lon and onedimensional array
-## Requires modification!!!
-## Idea: Get a lot of info with text mining
-a <- capture.output(spat_rr) # and get out required text chunks!
-
-## EOBS
-eobs_rr_path <- "D:/MetData/EOBS/rr_0.25deg_reg_v17.0.nc"
-
-eobs_rr <- nc_open(eobs_rr_path)
-
-eobs_data <- ncvar_get(eobs_rr,"RR") %>%
-  array_branch(., margin = 3) %>%
-  map(.,  rotate_cc)
-
-eobs_lat <- ncvar_get(eobs_rr,"y") %>%
-  rotate_cc(.)
-
-eobs_lon <- ncvar_get(eobs_rr,"x") %>%
-  rotate_cc(.)
-
-eobs_time <- ncvar_get(eobs_rr, "time")
-eobs_t_0 <- ncatt_get(eobs_rr, "time","units")$value %>%
-  gsub("[[:alpha:]]", "", .) %>%
-  as_date(.)
-## EOBS has no lat/lon matrices but latitude longitude dimensions
+crs_lmb <- "+proj=lcc +lat_1=46 +lat_2=49 +lat_0=47.5 +lon_0=13.33333333333333 +x_0=400000 +y_0=400000 +ellps=bessel +units=m +no_defs"
+sprb_tbl <- aggregate_ncdf(ncdf_file = sprb_rr_path, crs_ncdf = crs_lmb,
+                           shape_file = shp_raab, shape_index = "Subbasin")
 
 ## UnLoad
 unld_rr_path <- "D:/MetData/UnLoadC3/pr_bc_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_day_AT_EZG_1971-2000.nc"
-ncdf_file <- unld_rr_path
+unld_tbl <- aggregate_ncdf(ncdf_file = unld_rr_path, crs_ncdf = crs_ncdf,
+                           shape_file = shp_raab, shape_index = "Subbasin",
+                           time_range = c("1980-01-01", "1980-12-31"))
 
-unld_rr <- nc_open(unld_rr_path)
-
-unld_data <- ncvar_get(unld_rr,"pr", start = c(1,1,100), count = c(-1,-1,1))
-  array_branch(., margin = 3) %>%
-  map(.,  rotate_cc)
-
-unld_lat <- ncvar_get(unld_rr,"lat") %>%
-  rotate_cc(.)
-
-unld_lon <- ncvar_get(unld_rr,"x") %>%
-  rotate_cc(.)
-
-unld_time <- ncvar_get(unld_rr, "time")
-unld_t_0 <- ncatt_get(unld_rr, "time","units")$value %>%
-  gsub("[[:alpha:]]", "", .) %>%
-  as_date(.)
+## EOBS
+eobs_rr_path <- "D:/MetData/EOBS/rr_0.25deg_reg_v17.0.nc"
+shp_szyb <- "D:/MetData/SalzachYbbs/salzachybbs.shp"
+eobs_rr_path <- "D:/MetData/EOBS/rr_0.25deg_reg_v17.0.nc"
+eobs_tbl <- aggregate_ncdf(ncdf_file = eobs_rr_path, crs_ncdf = crs_ncdf,
+                           shape_file = shp_szyb, shape_index = "HYDROCODE",
+                           time_range = c("1980-01-01", "1980-12-31"))
 
 
 
 
-unld_ll <- fetch_latlon(unld_rr, NULL)
-spat_ll <- fetch_latlon(spat_rr, NULL)
-sprb_ll <- fetch_latlon(sprb_rr, NULL)
-eobs_ll <- fetch_latlon(eobs_rr, NULL)
+
+

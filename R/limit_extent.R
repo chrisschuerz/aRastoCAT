@@ -1,22 +1,13 @@
+#' Trim the lat/lon matrices to the extent of the provided shape file
+#'
+#' @param lat Matrix holding the latitude values of each pixel
+#' @param lon Matrix holding the longitude values of each pixel
+#' @param bbox Boundary box of the shape file
+#'
+#' @return Returns a list of length 2 holding the trimmed lat and lon matrices.
+#' @keywords internal
+#'
 trim_latlon <- function(lat, lon, bbox) {
-  # Reduce the extent of the provided NCDF data set to the extent of the provided
-  # shape file after transforming it to the reference system of the NCDF
-  ## Function to find the indices of the longitude matrix that covers c(xmin,
-  ## xmax) of the shape file extent
-  limit_lon <- function(lon, bbox){
-    lon_lf <- which(colSums(lon < bbox[1]) == nrow(lon)) %>% .[length(.)]
-    lon_rg <- which(colSums(lon > bbox[3]) == nrow(lon)) %>% .[1]
-    lon_lf:lon_rg
-  }
-
-  ## Function to find the indices of the latitude matrix that covers c(ymin,
-  ## ymax) of the shape file extent
-  limit_lat <- function(lat, bbox){
-    lat_lw <- which(rowSums(lat < bbox[2]) == ncol(lat)) %>% .[1]
-    lat_up <- which(rowSums(lat > bbox[4]) == ncol(lat)) %>% .[length(.)]
-    lat_up:lat_lw
-  }
-
   ## If the lat/lon system represented in the lat/lon matrices is curved the
   ## limitation of the extent to the one of the shape file is solved
   ## iteratively
@@ -33,8 +24,8 @@ trim_latlon <- function(lat, lon, bbox) {
   while(iter_check){
     ### Find the indices of along lat and long that fully cover the shape file
     ### extent.
-    ind_lat <- limit_lat(lat, bbox_trans)
-    ind_lon <- limit_lon(lon, bbox_trans)
+    ind_lat <- limit_lat(lat, bbox)
+    ind_lon <- limit_lon(lon, bbox)
 
     ### Check for the first run if shape file is inside the exntent of the
     ### matrices
@@ -59,6 +50,48 @@ trim_latlon <- function(lat, lon, bbox) {
   return(list(lat = lat, lon = lon))
 }
 
+#' Helper function to find the indices of the longitude matrix that covers
+#' c(xmin,xmax) of the shape file extent
+#'
+#' @param lon Matrix holding the longitude values of each pixel
+#' @param bbox Boundary box of the shape file
+#'
+#' @return Returns the updated longitude indices to which the matrices will be
+#'   reduced.
+#' @keywords internal
+#'
+limit_lon <- function(lon, bbox){
+  lon_lf <- which(colSums(lon < bbox[1]) == nrow(lon)) %>% .[length(.)]
+  lon_rg <- which(colSums(lon > bbox[3]) == nrow(lon)) %>% .[1]
+  lon_lf:lon_rg
+}
+
+#' Helper function to find the indices of the latitude matrix that covers
+#' c(xmin,xmax) of the shape file extent
+#'
+#' @param lon Matrix holding the latitude values of each pixel
+#' @param bbox Boundary box of the shape file
+#'
+#' @return Returns the updated latitude indices to which the matrices will be
+#'   reduced.
+#' @keywords internal
+#'
+limit_lat <- function(lat, bbox){
+  lat_lw <- which(rowSums(lat < bbox[2]) == ncol(lat)) %>% .[1]
+  lat_up <- which(rowSums(lat > bbox[4]) == ncol(lat)) %>% .[length(.)]
+  lat_up:lat_lw
+}
+
+#' Get the indices in the original lat/lon matrices that cover the trimmed
+#' matrices.
+#'
+#' @param lat_lon List holding the initial lat_lon matrices
+#' @param lat_lon_trim List holding the trimmed lat_lon matrices
+#'
+#' @return Returns the updated longitude indices to which the matrices will be
+#'   reduced.
+#' @keywords internal
+#'
 get_latlonindex <- function(lat_lon, lat_lon_trim) {
   dim_trim <- dim(lat_lon_trim[[1]])[2:1]
 
@@ -72,6 +105,21 @@ get_latlonindex <- function(lat_lon, lat_lon_trim) {
   return(list(start = start_ind, count = dim_trim))
 }
 
+#' Trim the time vector provided by the ncdf file according to the provided
+#' time_range.
+#'
+#' @param time Date vector derived from the ncdf file
+#' @param time_range Vector of length 2 that either provides the date range as
+#'   character strings or in a date format. If NULL the complete time vector is
+#'   used.
+#'
+#' @importFrom lubridate as_date
+#'
+#' @return Returns a list that holds the trimmed date vector and the
+#'   corresponding indices in the original vector that are further used for
+#'   trimming the data set
+#' @keywords internal
+#'
 trim_time <- function(time, time_range) {
   if(is.null(time_range)){
     time_ind <- list(start = 1, count = -1)
@@ -80,7 +128,7 @@ trim_time <- function(time, time_range) {
       time_range <- as_date(time_range)
 
       time_ind <- list(start = which(time >= time_range[1])[1])
-      time_ind$count <- which(time > time_range[2])[1] - time_ind$start + 1
+      time_ind$count <- which(time >= time_range[2])[1] - time_ind$start + 1
 
       time <- time[time_ind$start:(time_ind$start + time_ind$count -1)]
     } else {

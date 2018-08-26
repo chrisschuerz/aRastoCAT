@@ -2,36 +2,39 @@
 % Please edit documentation in R/aggregate_ncdf.R
 \name{aggregate_ncdf}
 \alias{aggregate_ncdf}
-\title{Aggregate NCDF Climate (Raster) Data for Catchment Subbasins}
+\title{Aggregate ncdf climate (raster) data for catchment subbasins}
 \usage{
-aggregate_ncdf(ncdf_file, crs_ncdf, shape_file, shape_index, var_label,
-  lat_label = "lat", lon_label = "lon", time_label = "time")
+aggregate_ncdf(ncdf_file, crs_ncdf, shape_file, shape_index, var_name = NULL,
+  latlon_name = NULL, time_range = NULL)
 }
 \arguments{
 \item{ncdf_file}{Path to the ncdf file}
 
-\item{crs_ncdf}{Current reference system of ncdf file}
+\item{crs_ncdf}{Character string providing the reference system of ncdf file}
 
 \item{shape_file}{Shape file with the basin sub-unit polygons or path to the
-file}
+file as character string}
 
 \item{shape_index}{Name of the column in the basin shapefile attribute table
 that provides the indices of the basin subunits}
 
-\item{var_label}{Name of the variable array to be extracted from the ncdf
-file}
+\item{var_name}{(optional) character string. Name of the variable array to be
+extracted from the ncdf file. If \code{NULL} the first variable provided in
+the ncdf file is selected automatically}
 
-\item{lat_label}{Name of the latitude matrix in the ncdf file}
+\item{latlon_name}{(optional) character vector of \code{length 2}. Names of
+the longitude and latitude variables in the ncdf file. Must be provided if
+the variables connot be found automatically}
 
-\item{lon_label}{Name of the longitude matrix  in the ncdf file}
-
-\item{time_label}{Name of the time vector in the ncdf file}
+\item{time_label}{(optional) vector of \code{length 2}. Start and end date of
+the time range that should be extracted from the ncdf file. Dates can be
+either provided as unambiguous text strings (e.g. \code{'yyyy-mm-dd'} or in
+a date format}
 }
 \value{
 Returns a tibble that provides the time series of the aggregated
   variable for the respective basin subunits
 }
 \description{
-Aggregate NCDF Climate (Raster) Data for Catchment Subbasins
+Aggregate ncdf climate (raster) data for catchment subbasins
 }
-

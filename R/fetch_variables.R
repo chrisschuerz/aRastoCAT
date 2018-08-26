@@ -76,7 +76,7 @@ find_latlon <- function(nc_file) {
 #'
 #' @importFrom dplyr %>%
 #' @importFrom lubridate as_date duration
-#' @importFrom ncdf ncatt_get ncvar_get
+#' @importFrom ncdf4 ncatt_get ncvar_get
 #'
 #' @return Returns a vector of length 2 givong the names of the lat/lon variables
 #' @keywords internal
@@ -123,10 +123,9 @@ fetch_time <- function(nc_file) {
 #'   for the time period of interest
 #'
 #' @importFrom dplyr bind_cols case_when %>%
-#' @importFrom lubridate as_date duration
-#' @importFrom ncdf ncvar_get
+#' @importFrom ncdf4 ncvar_get
 #' @importFrom purrr array_branch map set_names
-#' @importFrom tibble add_columns as_tibble
+#' @importFrom tibble add_column as_tibble
 #'
 #' @return Returns the variable's data as a list of matrices.
 #' @keywords internal
