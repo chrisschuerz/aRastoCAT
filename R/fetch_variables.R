@@ -145,7 +145,9 @@ fetch_var <- function(nc_file, var_name, lat_lon_ind, time_ind) {
   var_data <- ncvar_get(nc = nc_file, varid = var_name,
                         start = start_ind, count = count_ind)
 
-  if(count_ind[3] > 1) {
+  n_timestep <- ifelse(is.na(count_ind[3]), 0, count_ind[3])
+
+  if(n_timestep > 1) {
     array_margin <- case_when(all(count_ind[1:2] == 1) ~ 1,
                               any(count_ind[1:2] == 1) ~ 2,
                               all(count_ind[1:2] != 1) ~ 3)

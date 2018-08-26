@@ -99,9 +99,10 @@ get_latlonindex <- function(lat_lon, lat_lon_trim) {
     map(.,rotate_cc) %>%
     map(.,rotate_cc) %>%
     map(.,rotate_cc)
-  start_ind <- which((lat_lon_rot[[1]] == lat_lon_trim[[1]][1,1]) &
+  array_ind <- which((lat_lon_rot[[1]] == lat_lon_trim[[1]][1,1]) &
                      (lat_lon_rot[[2]] == lat_lon_trim[[2]][1,1]),
                      arr.ind = TRUE)
+  start_ind <- c(array_ind[1], (array_ind[2] - dim_trim[2]))
   return(list(start = start_ind, count = dim_trim))
 }
 
