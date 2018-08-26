@@ -9,7 +9,7 @@ bnd_file_name = "subs1.shp"
 basin_shp <- readOGR(,
                    layer = "subs1")
 
-crs_nc <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
+crs_ncdf <- "+proj=longlat +datum=WGS84 +no_defs +ellps=WGS84 +towgs84=0,0,0"
 
 nc_test <- aggregate_ncdf(ncdf_pth = ncdf_pth,
                           basin_shp = basin_shp,

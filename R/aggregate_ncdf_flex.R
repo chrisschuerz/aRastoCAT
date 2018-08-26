@@ -78,47 +78,10 @@ aggregate_ncdf <- function(ncdf_file, crs_ncdf, shape_file, shape_index,
   var_grid <- create_polygon_grid(var_data, lat_lon_trim, shape_file, crs_ncdf)
 
 #-----------------------------------------------------------------------------
-  # Intersect the shape file with the genereated polygon grid and calculate area
-  # weighted averages of each times step in the data for the individual subunits
-  # in the shape file
+  var_table <- aggregate_var(var_grid, var_data, shape_file, shape_index,
+                             time[[1]])
 
-  grid_intersect <- var_grid %>%
-    st_intersection(st_set_agr(shape_file, "constant"), .) %>%
-    as_tibble(.) %>%
-    mutate(area = st_area(geometry) %>% as.numeric(.))  # Calculate the area of each itersection
-
-  data_aggregate <- tibble(index = grid_intersect[[shape_index]],
-                           idx         = grid_intersect$idx,
-                           area_fract  = grid_intersect$area) %>%
-    group_by(index) %>%
-    mutate(area_fract = area_fract/sum(area_fract)) %>% # Calculate fractions of areas
-    left_join(., var_data, by = "idx") %>% # Jion with variable data
-    multiply_by_fraction(.) %>%
-    summarise_all(funs(sum)) %>% # Sum up the fractions for all shape sub units
-    ungroup(.) %>%
-    mutate(., index = shape_index%_%index) %>%
-    transpose_tbl(., name_col = "index") %>%
-    add_column(., date = time$time, .before = 1)
-
-
-    return(data_aggregate)
+  return(data_aggregate)
 }
 
-multiply_by_fraction <- function(tbl) {
-  data <- tbl %>% ungroup() %>% select(starts_with("timestep"))
-  fract <- tbl$area_fract
-  data %>%
-    map_dfc(., ~.x*fract) %>%
-    bind_cols(tbl %>% select(index),.) %>%
-    group_by(index)
-}
 
-transpose_tbl <- function(tbl, name_col) {
-  col_names <- tbl[[name_col]]
-  tbl <- tbl %>%
-    select(-matches(name_col)) %>%
-    t(.) %>%
-    as_tibble(.) %>%
-    set_names(., col_names)
-  return(tbl)
-}

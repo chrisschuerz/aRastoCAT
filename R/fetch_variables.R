@@ -111,9 +111,26 @@ fetch_time <- function(nc_file) {
   return(time_span)
 }
 
-## Read the array for the variable holding the data for each lat/lon point and
-## time step. Rotate it as done with lat/lon and save all matrices for the
-## individual timesteps in a list
+#' Fetch the trimmed data array according to the trimmed lat/lon and the trimmed
+#' time interval
+#'
+#' @param nc_file Opened ncdf file
+#' @param var_name The name of the variable that should be read. If NULL the
+#'   first variable is selected
+#' @param lat_lon_ind The indices of the in x/y dimensions to extract only the
+#'   extent of the data array that covers the shape extent
+#' @param time_ind The indices in the time dimension to only extract the data
+#'   for the time period of interest
+#'
+#' @importFrom dplyr bind_cols case_when %>%
+#' @importFrom lubridate as_date duration
+#' @importFrom ncdf ncvar_get
+#' @importFrom purrr array_branch map set_names
+#' @importFrom tibble add_columns as_tibble
+#'
+#' @return Returns the variable's data as a list of matrices.
+#' @keywords internal
+#'
 fetch_var <- function(nc_file, var_name, lat_lon_ind, time_ind) {
   ## If no variable name is provided, the first variable is selected
   if(is.null(var_name)) var_name <- names(nc_file$var)[1]

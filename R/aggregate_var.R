@@ -10,7 +10,7 @@
 #'   attribute table that provides the indices of the basin subunits.
 #' @param time Date Vector for the time steps in var_data
 #'
-#' @importFrom dplyr funs group_by left_join mutate summarise_all ungroup
+#' @importFrom dplyr funs group_by left_join mutate summarise_all ungroup %>%
 #' @importFrom sf st_area st_intersection st_set_agr
 #' @importFrom tibble as_tibble tibble
 #'
@@ -50,7 +50,7 @@ aggregate_variable <- function(var_grid, var_data,
 #' @param tbl The data table that holds the area fraction for all pixels, the
 #'   data for each time step and each pixel and the grouping variable index.
 #'
-#' @importFrom dplyr bind_cols group_by select starts_with ungroup
+#' @importFrom dplyr bind_cols group_by select starts_with ungroup %>%
 #' @importFrom purrr map_dfc
 #'
 #' @return Returns the tibble including the index and all timesteps multiplied
@@ -72,7 +72,7 @@ multiply_by_fraction <- function(tbl) {
 #' @param tbl The data table that should be transposed
 #' @param name_col Character string that defines the name column
 #'
-#' @importFrom dplyr matches select
+#' @importFrom dplyr matches select %>%
 #' @importFrom purrr set_names
 #' @importFrom tibble as_tibble
 #'
