@@ -27,4 +27,3 @@ Returns tibble that provides the time series
 \description{
 Aggregate binary INCA raster data for catchment subbasins
 }
-
