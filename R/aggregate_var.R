@@ -35,7 +35,7 @@ aggregate_variable <- function(var_grid, var_data,
     mutate(area_fract = area_fract/sum(area_fract)) %>% # Calculate fractions of areas
     left_join(., var_data, by = "idx") %>% # Join with variable data
     multiply_by_fraction(.) %>%
-    summarise_all(funs(sum)) %>% # Sum up the fractions for all shape sub units
+    summarise_all(funs(sum), na.rm = TRUE) %>% # Sum up the fractions for all shape sub units
     ungroup(.) %>%
     mutate(., index = shape_index%_%index) %>%
     transpose_tbl(., name_col = "index") %>%
