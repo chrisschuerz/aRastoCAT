@@ -124,7 +124,7 @@ fetch_time <- function(nc_file) {
 #'
 #' @importFrom dplyr bind_cols case_when %>%
 #' @importFrom ncdf4 ncvar_get
-#' @importFrom purrr array_branch map set_names
+#' @importFrom purrr array_branch map map_chr map_dbl set_names
 #' @importFrom tibble add_column as_tibble
 #'
 #' @return Returns the variable's data as a list of matrices.
@@ -134,12 +134,30 @@ fetch_var <- function(nc_file, var_name, lat_lon_ind, time_ind) {
   ## If no variable name is provided, the first variable is selected
   if(is.null(var_name)) var_name <- names(nc_file$var)[1]
   n_dim <- nc_file$var[[var_name]]$ndims
+
+  dim_var <- map_dbl(nc_file$dim, ~.x$len)
+  is_dim_one <- dim_var == 1
+  dim_name <- map_chr(nc_file$dim, ~.x$name)
+  if(time_ind$count > 1) {
+    which_is_time <- which(dim_name == "time")
+    is_dim_one <- is_dim_one*(!(dim_name == "time"))
+  }
+
   if(n_dim == 3){
-    start_ind <- c(lat_lon_ind$start, time_ind$start)
-    count_ind <- c(lat_lon_ind$count, time_ind$count)
+    start_ind <- rep(1, n_dim)
+    start_ind[!is_dim_one] <- c(lat_lon_ind$start, time_ind$start)
+    count_ind <- rep(1, n_dim)
+    count_ind[!is_dim_one] <- c(lat_lon_ind$count, time_ind$count)
   } else {
-    start_ind <- lat_lon_ind$start
-    count_ind <- lat_lon_ind$count
+    start_ind <- rep(1, n_dim)
+    start_ind[!is_dim_one] <- lat_lon_ind$start
+    count_ind <- rep(1, n_dim)
+    count_ind[!is_dim_one] <- lat_lon_ind$count
+  }
+
+  if(any(is_dim_one)) {
+    warning(paste("Variables:", paste(dim_name[is_dim_one], collapse = ", "),
+                  "were dimension 1 and were not considered for variable aggregation!"))
   }
 
   var_data <- ncvar_get(nc = nc_file, varid = var_name,

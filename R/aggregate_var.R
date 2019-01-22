@@ -37,6 +37,7 @@ aggregate_variable <- function(var_grid, var_data,
     multiply_by_fraction(.) %>%
     summarise_all(funs(sum), na.rm = TRUE) %>% # Sum up the fractions for all shape sub units
     ungroup(.) %>%
+    re_sort(., grid_intersect, shape_index) %>%
     mutate(., index = shape_index%_%index) %>%
     transpose_tbl(., name_col = "index") %>%
     add_time_if_exists(., time)
@@ -64,6 +65,25 @@ multiply_by_fraction <- function(tbl) {
     map_dfc(., ~.x*fract) %>%
     bind_cols(tbl %>% select(index),.) %>%
     group_by(index)
+}
+
+
+#' Helper function to resort the table for its initial index order
+#'
+#' @param tbl The data table that should be transposed
+#' @param grid_int sf object from intersection
+#' @param shp_ind label of shape index
+#'
+#' @importFrom dplyr left_join
+#' @importFrom tibble tibble
+#'
+#' @return Returns the transposed tibble with the column names indicated in the
+#'   column name_col
+#' @keywords internal
+#'
+re_sort <- function(tbl, grid_int, shp_ind) {
+  index_tbl <- tibble(index = unique(grid_intersect[[shape_index]]))
+  left_join(index_tbl, tbl, by = "index")
 }
 
 #' Helper function to transpose the data tibble and to name the columns by the

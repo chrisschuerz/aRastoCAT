@@ -1,7 +1,7 @@
 Package: aRastoCAT
 Type: Package
 Title: a Raster Climate data Aggregation Tool
-Version: 0.2.0
+Version: 0.2.1
 Authors@R: person("Christoph", "Schuerz",
                 email = "c.schuerz@gmail.com",
                 role = c("aut", "cre"))
