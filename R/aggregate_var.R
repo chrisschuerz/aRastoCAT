@@ -82,7 +82,7 @@ multiply_by_fraction <- function(tbl) {
 #' @keywords internal
 #'
 re_sort <- function(tbl, grid_int, shp_ind) {
-  index_tbl <- tibble(index = unique(grid_intersect[[shape_index]]))
+  index_tbl <- tibble(index = unique(grid_int[[shp_ind]]))
   left_join(index_tbl, tbl, by = "index")
 }
 
