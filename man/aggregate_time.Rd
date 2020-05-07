@@ -4,8 +4,13 @@
 \alias{aggregate_time}
 \title{Aggregate Time}
 \usage{
-aggregate_time(ts_tbl, time_int = "day", drop_col = FALSE,
-  aggr_fun = mean, ...)
+aggregate_time(
+  ts_tbl,
+  time_int = "day",
+  drop_col = FALSE,
+  aggr_fun = mean,
+  ...
+)
 }
 \arguments{
 \item{ts_tbl}{tibble with timeseries data for basin subunits}

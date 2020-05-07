@@ -4,8 +4,15 @@
 \alias{aggregate_ncdf}
 \title{Aggregate ncdf climate (raster) data for catchment subbasins}
 \usage{
-aggregate_ncdf(ncdf_file, crs_ncdf, shape_file, shape_index, var_name = NULL,
-  latlon_name = NULL, time_range = NULL)
+aggregate_ncdf(
+  ncdf_file,
+  crs_ncdf,
+  shape_file,
+  shape_index,
+  var_name = NULL,
+  latlon_name = NULL,
+  time_range = NULL
+)
 }
 \arguments{
 \item{ncdf_file}{Path to the ncdf file}

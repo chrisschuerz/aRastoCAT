@@ -4,9 +4,18 @@
 \alias{write_SWATweather}
 \title{Write SWAT weather input from aggregated climate variable time series}
 \usage{
-write_SWATweather(pcp_tbl = NULL, tmp_tbl = NULL, tmn_tbl = NULL,
-  tmx_tbl = NULL, hmd_tbl = NULL, slr_tbl = NULL, wnd_tbl = NULL,
-  basin_shp, out_type = "ArcSWAT", write_pth)
+write_SWATweather(
+  pcp_tbl = NULL,
+  tmp_tbl = NULL,
+  tmn_tbl = NULL,
+  tmx_tbl = NULL,
+  hmd_tbl = NULL,
+  slr_tbl = NULL,
+  wnd_tbl = NULL,
+  basin_shp,
+  out_type = "ArcSWAT",
+  write_pth
+)
 }
 \arguments{
 \item{pcp_tbl}{data.frame providing time series of daily precipitation

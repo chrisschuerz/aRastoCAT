@@ -37,7 +37,7 @@ aggregate_variable <- function(var_grid, var_data,
     multiply_by_fraction(.) %>%
     summarise_all(funs(sum), na.rm = TRUE) %>% # Sum up the fractions for all shape sub units
     ungroup(.) %>%
-    re_sort(., grid_intersect, shape_index) %>%
+    re_sort(., shape_file, shape_index) %>%
     mutate(., index = shape_index%_%index) %>%
     transpose_tbl(., name_col = "index") %>%
     add_time_if_exists(., time)
@@ -59,11 +59,11 @@ aggregate_variable <- function(var_grid, var_data,
 #' @keywords internal
 #'
 multiply_by_fraction <- function(tbl) {
-  data <- tbl %>% ungroup() %>% select(starts_with("timestep"))
+  data <- tbl %>% ungroup() %>% dplyr::select(starts_with("timestep"))
   fract <- tbl$area_fract
   data %>%
     map_dfc(., ~.x*fract) %>%
-    bind_cols(tbl %>% select(index),.) %>%
+    bind_cols(tbl %>% dplyr::select(index),.) %>%
     group_by(index)
 }
 
@@ -103,7 +103,7 @@ re_sort <- function(tbl, grid_int, shp_ind) {
 transpose_tbl <- function(tbl, name_col) {
   col_names <- tbl[[name_col]]
   tbl <- tbl %>%
-    select(-matches(name_col)) %>%
+    dplyr::select(-matches(name_col)) %>%
     t(.) %>%
     as_tibble(.) %>%
     set_names(., col_names)
