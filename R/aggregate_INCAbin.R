@@ -40,7 +40,7 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
     .[,2] %>%
     as.numeric() %>%
     t() %>%
-    as_tibble() %>%
+    as_tibble(., .name_repair = "minimal") %>%
     set_colnames(hdr_col)
 
 # Create raster with cell indices as values and convert to spatial polygon
@@ -92,7 +92,7 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
                      n = header$NROWS * header$NCOLS * header$NBLOCKS,
                      size = 4) %>%
       matrix(ncol = header$NBLOCKS) %>%
-      as_tibble() %>%
+      as_tibble(., .name_repair = "minimal") %>%
       set_colnames("time"%_%1:header$NBLOCKS) %>%
       mutate(idx = 1:nrow(.))
 
@@ -105,7 +105,7 @@ aggregate_INCAbin <- function(bin_pth, basin_shp, bin_crs, bin_ext, shp_index) {
       mutate_at(vars(starts_with("time")), funs(./fraction)) %>%
       select(-basin, -fraction) %>%
       t() %>%
-      as_tibble() %>%
+      as_tibble(., .name_repair = "minimal") %>%
       set_colnames(shp_index%_%1:ncol(.)) %>%
       add_column(year = year(t_0 + t_step),
                  mon  = month(t_0 + t_step),

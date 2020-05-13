@@ -184,7 +184,7 @@ fetch_var <- function(nc_file, var_name, lat_lon_ind, time_ind) {
     map(., rotate_cc) %>%
     map(., as.vector) %>%
     bind_cols() %>%
-    as_tibble() %>%
+    as_tibble(., .name_repair = "minimal") %>%
     set_names("timestep"%_%1:ncol(.)) %>%
     add_column(., idx = 1:nrow(.), .before = 1)
 

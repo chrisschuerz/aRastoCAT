@@ -25,7 +25,7 @@ aggregate_variable <- function(var_grid, var_data,
   # in the shape file
   grid_intersect <- var_grid %>%
     st_intersection(st_set_agr(shape_file, "constant"), .) %>%
-    as_tibble(.) %>%
+    as_tibble(., .name_repair = "minimal") %>%
     mutate(area = st_area(geometry) %>% as.numeric(.))  # Calculate the area of each itersection
 
   data_aggregate <- tibble(index = grid_intersect[[shape_index]],
@@ -105,7 +105,7 @@ transpose_tbl <- function(tbl, name_col) {
   tbl <- tbl %>%
     dplyr::select(-matches(name_col)) %>%
     t(.) %>%
-    as_tibble(.) %>%
+    as_tibble(., .name_repair = "minimal") %>%
     set_names(., col_names)
   return(tbl)
 }

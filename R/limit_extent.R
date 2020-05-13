@@ -94,15 +94,17 @@ limit_lat <- function(lat, bbox){
 #'
 get_latlonindex <- function(lat_lon, lat_lon_trim) {
   dim_trim <- dim(lat_lon_trim[[1]])[2:1]
+  ll_pos <- c(nrow(lat_lon_trim[[1]]),1)
 
   lat_lon_rot <- lat_lon %>%
     map(.,rotate_cc) %>%
     map(.,rotate_cc) %>%
     map(.,rotate_cc)
-  array_ind <- which((lat_lon_rot[[1]] == lat_lon_trim[[1]][1,1]) &
-                     (lat_lon_rot[[2]] == lat_lon_trim[[2]][1,1]),
+
+  start_ind <- which((lat_lon_rot[[1]] == lat_lon_trim[[1]][ll_pos[1], ll_pos[2]]) &
+                       (lat_lon_rot[[2]] == lat_lon_trim[[2]][ll_pos[1], ll_pos[2]]),
                      arr.ind = TRUE)
-  start_ind <- c(array_ind[1], (array_ind[2] - dim_trim[2]))
+
   return(list(start = start_ind, count = dim_trim))
 }
 
